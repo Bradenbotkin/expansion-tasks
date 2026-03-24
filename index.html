@@ -1,739 +1,123 @@
-// ============================================================
-// SigEp Expansion Task Portal — Google Apps Script
-// HOW TO USE:
-// 1. Open a new Google Sheet
-// 2. Click Extensions → Apps Script
-// 3. Delete everything in the editor
-// 4. Paste this entire script
-// 5. Click Save (disk icon)
-// 6. Click Run → select "buildTaskPortal"
-// 7. Approve permissions when prompted
-// 8. Return to your Sheet — it's done.
-//
-// TO UPDATE: Paste the new script version, run buildTaskPortal again.
-// It clears and rebuilds automatically. Your edits to Status,
-// Owner, Deadline, and Notes columns are preserved on re-run
-// because the script reads them back before rebuilding.
-// ============================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SigEp Expansion Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .task-card { transition: all 0.3s ease; }
+        .expanded-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .expanded .expanded-content { max-height: 1000px; padding-top: 1rem; }
+        .expanded .chevron { transform: rotate(180deg); }
+        [contenteditable]:focus { outline: 2px solid #6366f1; border-radius: 4px; padding: 0 4px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen">
 
-// ── SIGEP COLOR PALETTE ─────────────────────────────────────
-const C = {
-  RED:        '#C8102E',
-  GOLD:       '#C9A84C',
-  NAVY:       '#002147',
-  RED_LIGHT:  '#FDECEA',
-  GOLD_LIGHT: '#FDF3D8',
-  NAVY_LIGHT: '#E8EEF5',
-  WHITE:      '#FFFFFF',
-  OFF_WHITE:  '#F8F7F4',
-  GRAY_LIGHT: '#F2F0EC',
-  GRAY_MED:   '#D4D0C6',
-  GRAY_DARK:  '#5A5750',
-  TEXT:       '#1A1A18',
-  TEXT_MED:   '#4A4840',
-  // Status colors
-  BEHIND_BG:  '#FDECEA', BEHIND_FG:  '#7F1D1D', BEHIND_BAR: '#B91C1C',
-  STUCK_BG:   '#FFF7ED', STUCK_FG:   '#7C2D12', STUCK_BAR:  '#C2410C',
-  NOTSTART_BG:'#FFFBEB', NOTSTART_FG:'#78350F', NOTSTART_BAR:'#D97706',
-  INPROG_BG:  '#EFF6FF', INPROG_FG:  '#1E3A8A', INPROG_BAR: '#2563EB',
-  REVIEW_BG:  '#FAF5FF', REVIEW_FG:  '#4C1D95', REVIEW_BAR: '#7C3AED',
-  DONE_BG:    '#F0FDF4', DONE_FG:    '#14532D', DONE_BAR:   '#16A34A',
-};
+    <div class="max-w-5xl mx-auto py-12 px-6">
+        <header class="mb-10 flex justify-between items-end border-b pb-6 border-slate-200">
+            <div>
+                <h1 class="text-3xl font-extrabold tracking-tight text-indigo-900">SigEp Expansion Task Portal</h1>
+                <p class="text-slate-500 mt-1 italic">Click any text to edit. Changes are saved automatically to your browser.</p>
+            </div>
+            <button onclick="addTask()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-bold transition shadow-lg active:scale-95">
+                <i class="fas fa-plus mr-2"></i>New Task
+            </button>
+        </header>
 
-const STATUS_LIST = ['Behind','Stuck','Not Started','In Progress','Needs Review','Complete'];
-const STATUS_MAP = {
-  'Behind':       {bg: C.BEHIND_BG,   fg: C.BEHIND_FG,   bar: C.BEHIND_BAR},
-  'Stuck':        {bg: C.STUCK_BG,    fg: C.STUCK_FG,    bar: C.STUCK_BAR},
-  'Not Started':  {bg: C.NOTSTART_BG, fg: C.NOTSTART_FG, bar: C.NOTSTART_BAR},
-  'In Progress':  {bg: C.INPROG_BG,   fg: C.INPROG_FG,   bar: C.INPROG_BAR},
-  'Needs Review': {bg: C.REVIEW_BG,   fg: C.REVIEW_FG,   bar: C.REVIEW_BAR},
-  'Complete':     {bg: C.DONE_BG,     fg: C.DONE_FG,     bar: C.DONE_BAR},
-};
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <p class="text-xs font-bold text-slate-400 uppercase">Total Tasks</p>
+                <p id="totalCount" class="text-2xl font-black text-indigo-600">0</p>
+            </div>
+        </div>
 
-// ── TASK DATA ────────────────────────────────────────────────
-// Columns: Status | Task | Owner(s) | Deadline | Chapter | Output | Notes | isNew
-const TASKS = [
-  // ── AUBURN NEW (from March 23 preheat) ──────────────────
-  ['Not Started','Thank you cards for FSL, Lindsay, Frank Sr.','Braden','3/24','Auburn','✅ Gmail Drafts Ready','5 thank you email drafts saved to Gmail. Add emails and send.',true],
-  ['Not Started','Send Lindsay and Johnny interest group info','Braden','3/24','Auburn','✅ Gmail Draft Ready','Will Brann, Quinlan Fettig. Draft in Gmail.',true],
-  ['Not Started','Contact Barry Holt — ask him to reach out to ATO re: house timeline','Braden','3/24','Auburn','','IFC Presidents flagged ATO communication gap. Barry is the bridge.',true],
-  ['Not Started','Reach out to Dr. Pat O\'Keefe — Psych Services, potential Montana SigEp','Braden, Lukas','3/25','Auburn','','Flagged as AVC volunteer candidate by IFC Advisors.',true],
-  ['Not Started','Book chapter / exec room at Auburn house','Lukas','3/25','Auburn','','Flagged explicitly in IFC Advisors meeting.',true],
-  ['Not Started','Set up Facebook Parent Pages for Auburn','Lukas','4/1','Auburn','','Key recruitment tool flagged by IFC Advisors.',true],
-  ['Not Started','Move Auburn preheat events to semester calendar template','Braden','3/25','Auburn','','May 1 rec reg, May 29 events deadline, 4 summer weekends, Camp War Eagle.',true],
-  ['Not Started','Register for Auburn IFC recruitment (Chapter Builder)','Lukas','5/1','Auburn','','Must register before May 1 deadline. $70 bid fee per student.',true],
-  ['Not Started','Plan virtual platform for out-of-state PNM engagement over summer','Model, Lukas','4/15','Auburn','','No platform exists yet. OOS students are untapped market.',true],
-  ['Not Started','Replicate Lambda Chi\'s formal advisor interview process for AVC','Lukas','4/30','Auburn','','Gather metrics, vote, huddle, bid. Have potentials join calls before signing.',true],
-  ['Not Started','Research Auburn Man program — coordinate NME integration','Lukas','4/15','Auburn','','University-required New Member Ed program. Coordinate before launch.',true],
-  ['Not Started','Study A&M and Miss State expansion differentiation for Auburn','Model','4/1','Auburn','','Flagged by Student Conduct office as key benchmark.',true],
-  // ── CRITICAL ─────────────────────────────────────────────
-  ['Behind',    'Send KO and Tom Executive Board Structure Proposal','Model, Braden','3/19','','✅ Proposal Ready','In pre-read package Section 02. Let them know it will ruffle feathers.',false],
-  ['Stuck',     'Call Bryan Buechner - Per Bert - Xavier College','Braden','3/23','','✅ Gmail Draft Ready','Missed 3/20 window. Rescheduling email drafted and in Gmail.',false],
-  ['Stuck',     'Grade Idaho State and send to John Schuyler','Braden','3/28','','','',false],
-  // ── NOT STARTED ──────────────────────────────────────────
-  ['Not Started','Send Frank Parsons PNM Referral Form and Volunteer Interest Form','Braden','3/24','Auburn','✅ Gmail Draft Ready','Add his email and attach forms before sending.',false],
-  ['Not Started','Bump email to Barry Holt - Auburn Visit','Braden','3/24','Auburn','✅ Gmail Draft Ready','Draft in Gmail.',false],
-  ['Not Started','Call Sean Croker - TN Alpha Presentation','Braden','3/25','TN Alpha','✅ Call Prep Ready','Opening, questions, close, handoff note all built.',false],
-  ['Not Started','Prep Auburn Preheat Materials','Braden, Lukas','3/24','Auburn','✅ Docket Built','Tabling materials needed 3/24.',false],
-  ['Not Started','Reach out to assigned CSS','Braden','3/25','','','On CST Mgmt Huddle Notes Doc.',false],
-  ['Not Started','Talk to Kelly ab/ getting Parker job in Georgia - Clayton Homes','Braden','3/25','','','Parker got denied from OG location.',false],
-  ['Not Started','On slide 28 add inspiration to become a Buc Cup chapter','Model, Lukas, Braden','3/25','','','Outline things Buc Cup chapters do that we aren\'t doing.',false],
-  ['Not Started','Ensure slide 23 talks about why people would want to join','Model, Braden, Lukas','3/25','','','Not just how we recruit.',false],
-  ['Not Started','Slide 14 changes - key understandings of greek system','Model, Braden, Lukas','3/25','','','Talk to CST to see what\'s working and what\'s not.',false],
-  ['Not Started','Integrate financial components into phases in expansion model deck','Model, Braden','3/25','','','On each phase, add context as to the financial implications.',false],
-  ['Not Started','Breakdown of financial HQ','Model, Lukas, Braden','3/25','','','Explain how finances work from site approval to charter - one pager.',false],
-  ['Not Started','Update expansion SF pipeline','Braden','3/25','','','Add/adjust all schools so logo pipeline slide populates correctly.',false],
-  ['Not Started','Make TN Alpha Website','Braden','3/25','TN Alpha','✅ Content Ready','Full copy written and ready for web team.',false],
-  ['Not Started','Make TX Tech Website','Braden','3/25','TX Tech','✅ Content Ready','Full copy written and ready for web team.',false],
-  ['Not Started','Update Auburn Website','Braden','3/25','Auburn','✅ Content Ready','Interest group + alumni sections written.',false],
-  ['Not Started','Ensure that the chapter dashboard is up to date','Braden','3/25','','','',false],
-  ['Not Started','Confirm attendees for retreat','Model, Lukas, Braden','3/25','','✅ Draft Email Ready','Rece?, Stacy? - confirm. Draft in Gmail.',false],
-  ['Not Started','Book Hotels/AirBNB for Expansion Retreat','Braden','3/25','','✅ Research Brief Ready','BLOCKED: confirm city with KO/Tom first.',false],
-  ['Not Started','Call 25 PRD\'s','Braden','3/25','','✅ Call Script + Tracker','Upload Salesforce CSV to Claude for pre-populated tracker.',false],
-  ['Not Started','Change bid committee practice to align with chapter criteria','Model, Braden','3/26','','✅ Proposal Built','Add to preread.',false],
-  ['Not Started','Figure out the initiation component of chartering','Model, Braden','3/26','','✅ Decision Brief','Add to preread.',false],
-  ['Not Started','Figure out how to incentivize chartering','Model, Braden','3/26','','✅ In Pre-Read','Add to preread.',false],
-  ['Not Started','Figure out re-naming SEC\'s to something else','Model, Braden','3/26','','✅ Options Brief','5 options analyzed. Rec: Founding Chapter.',false],
-  ['Not Started','Update sigep.org/expansion-chapter-requirements','Braden','3/28','','✅ Audit Ready','Full recommended updates written. Forward to web team.',false],
-  ['Not Started','Talk to JSJ about Arizona State - Need to solve $ Issues','Braden, Preston','4/1','Arizona State','','Check email from John Corby.',false],
-  ['Not Started','Get Brendan added to website','Braden','4/1','','','',false],
-  ['Not Started','Get a video of a \'kick ass\' chartering banquet','Model, Lukas','4/1','','','Next group that charters - hire videographer.',false],
-  ['Not Started','Figure out the \'fund a founding father\' plan','Model, Lukas','4/1','','✅ Options Brief','4 options analyzed. Rec: payment plan now, endowment Year 1.',false],
-  ['Not Started','Build new hiring pipeline','Braden','4/1','','✅ Framework Built','4-tier pipeline. Review with Thomas Hall.',false],
-  ['Not Started','Add Expansion Assessment to Expansion Dashboard','Model, Braden','4/13','','','Convert from current home to dashboard.',false],
-  ['Not Started','Make one-pager for Exp. Model - Alumni Page','','TBD','','','Use for preheats.',false],
-  // ── IN PROGRESS ───────────────────────────────────────────
-  ['In Progress','Get Hawkins QGR goals made','Braden','3/25','','','',false],
-  ['In Progress','Update tracker for where we are at with outreach to Uni\'s','Braden','3/25','','','',false],
-  ['In Progress','Create a clear rationale sheet - Why this site, why now?','Model, Lukas','3/25','','✅ In 3-Year Map','3-Year Pipeline Map built. Lukas to add dream pipeline.',false],
-  ['In Progress','Flesh out Volunteer Capability Building','Model, Braden, Lukas','3/25','','✅ In Pre-Read','Pre-read Section 05. Braden and Lukas to review.',false],
-  ['In Progress','Add anecdotal notes for each group - context around each SEC','Model, Preston','3/25','','','Preston working with small team.',false],
-  ['In Progress','On slide 39, add competitor\'s nature','Model, Lukas, Braden','3/25','','','Where is Pike, Kap Sig, etc.',false],
-  ['In Progress','Get all expansion finance info together for pre-read','Model, Braden','3/26','','✅ Pre-Read Package','8-section pre-read built. Send to KO + Tom today.',false],
-  ['In Progress','Work with KO and Tom to finalize agenda and retreat materials','Model, Braden','3/26','','✅ Retreat Agenda','Pre-read ready. Await KO + Tom feedback.',false],
-  ['In Progress','Finish transition documents for Lukas','Braden','3/26','','','',false],
-  ['In Progress','Work on Expansion MSD - Actual Summer MSD','Braden','3/26','','','Per meeting w/ Lukas and Preston during Xmas Break.',false],
-  ['In Progress','Develop a three-year map - where we go, when, and why','Model, Lukas','3/26','','✅ 3-Year Map Built','Lukas to add dream pipeline before retreat.',false],
-  ['In Progress','Create plan to get high ROI groups to travel to excellent chapters','Judson','4/12','','','See Expansion committee call notes 10/16.',false],
-  // ── NEEDS REVIEW ─────────────────────────────────────────
-  ['Needs Review','Internally identify 3 things per SEC to get them back on track','Model, Lukas, Braden, Judson, Rece, Adam, Conner, Brendan','3/26','','','SEC_Chapter_Analysis',false],
-  ['Needs Review','Gather information on competitors for retreat','Model, Lukas, Rece, Braden','3/26','','✅ In Pre-Read','Pre-read Section 04.',false],
-  ['Needs Review','Create budget template - per man costs at 10, 25, 50 man groups','Model','3/26','','✅ In Pre-Read','Pre-read Section 03.',false],
-  ['Needs Review','Create a new semester calendar that integrates well with budget','Model, Lukas','3/26','','','Send once Alec gives nod.',false],
-  ['Needs Review','Create a better financial overview and budget','Model, Braden','3/26','','','Finance Sheet - Alec Reviewing.',false],
-  ['Needs Review','Run another AI assessment after adding new groups - send in preread','Model','3/26','','','Tom is making.',false],
-  ['Needs Review','Ole Miss Expansion Presentation','Braden, Rece, Judson, Conner','3/26','Ole Miss','','Waiting on Bbot approval.',false],
-  ['Needs Review','See what other expansions are doing with vols for their expansions','Model, Braden, Lukas','3/26','','','Kappa Sigma iPledge is gold standard.',false],
-  ['Needs Review','Miami Expansion Presentation','Braden, Rece, Conner','3/26','Miami','','',false],
-  ['Needs Review','Miami Expansion Packet','Braden, Judson, Conner','3/26','Miami','','Add changes from 12/2 template.',false],
-  ['Needs Review','Ole Miss Committee Approval','Braden','3/26','Ole Miss','✅ Gmail Draft Ready','April dates sent to Jess Turuc. Draft in Gmail.',false],
-  ['Needs Review','Create standard question set for outreach - FSLs, other orgs','Model, Braden, Lukas','3/26','','✅ Question Set Built','Send to KO and Tom for feedback.',false],
-  ['Needs Review','Syracuse Expansion Process Article - XIV','Braden, Judson, Conner','3/26','Syracuse','','FASA-Policies-2025.pdf',false],
-  ['Needs Review','Flesh out DOE budget w/ Lukas','Braden','4/1','','','',false],
-  ['Needs Review','Add manpower by semester glidepath for each group','Model, Braden','4/1','','','Fix 0 years for expansions, ensure retention is accurate.',false],
-  ['Needs Review','Sort out how to keep expansion segment #\'s even after charter','Model, Lukas','4/1','','','Broader segmentation convo needed.',false],
-  ['Needs Review','Update Chartering Requirements Presentation to Match New Criteria','Braden, Rece','4/10','','','Canva - Path to Chartering.',false],
-  ['Needs Review','Book TX Tech AirBNB','','TBD','TX Tech','','',false],
-  // ── COMPLETE ─────────────────────────────────────────────
-  ['Complete','Auburn Preheat — full day of meetings','Braden, Lukas, Evan','3/23','Auburn','','All 8 meetings completed. Strong reception.',false],
-  ['Complete','Set up meeting with John Wagner (Auburn)','Lukas','3/23','Auburn','','Meeting booked 3/24 10AM Samford Hall 105.',false],
-  ['Complete','Communicate Auburn Preheat time with Barry','Braden','3/4','Auburn','','',false],
-  ['Complete','Create TN Alpha Presentation','Braden','3/10','TN Alpha','','',false],
-  ['Complete','Align internally on 5 competitor benchmark categories to review','Model, Braden','3/13','','','',false],
-  ['Complete','Schedule Ole Miss Call week of 3/16','Braden','3/18','Ole Miss','','',false],
-  ['Complete','Swap all Canva items over to Support account','Braden','3/18','','','',false],
-  ['Complete','Schedule call week of 3/22 w/ Tom and KO','Braden','3/18','','','',false],
-  ['Complete','Book TX Tech Flights','','','TX Tech','','',false],
-  ['Complete','Make one-pager for Exp. Model - University page','','','','','Use for preheats.',false],
-];
+        <div id="taskContainer" class="space-y-3">
+            </div>
+    </div>
 
-// ── MAIN BUILDER ─────────────────────────────────────────────
-function buildTaskPortal() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  
-  // Capture any user edits before wiping
-  const savedEdits = captureUserEdits(ss);
-  
-  // Clear and rebuild sheets
-  clearAllSheets(ss);
-  buildTaskSheet(ss, savedEdits);
-  buildDashboard(ss);
-  buildOwnerViews(ss);
-  buildGuide(ss);
-  
-  // Set active to task sheet
-  ss.setActiveSheet(ss.getSheetByName('📋 Tasks'));
-  SpreadsheetApp.flush();
-  
-  Browser.msgBox('✅ SigEp Task Portal built successfully!\n\nShare this sheet with your team. Changes sync live.\n\nTabs: 📋 Tasks | 📊 Dashboard | 👤 My Tasks (per owner) | 📖 Guide');
-}
+    <script>
+        // --- CORE FUNCTIONALITY ---
 
-// ── CAPTURE USER EDITS ────────────────────────────────────────
-function captureUserEdits(ss) {
-  const edits = {};
-  const sh = ss.getSheetByName('📋 Tasks');
-  if (!sh) return edits;
-  const lastRow = sh.getLastRow();
-  if (lastRow < 5) return edits;
-  const data = sh.getRange(5, 1, lastRow - 4, 8).getValues();
-  data.forEach(row => {
-    const task = String(row[1] || '').trim();
-    if (task) {
-      edits[task] = {
-        status:   String(row[0] || '').trim(),
-        owner:    String(row[2] || '').trim(),
-        deadline: String(row[3] || '').trim(),
-        notes:    String(row[7] || '').trim(),
-      };
-    }
-  });
-  return edits;
-}
+        // Load data on start
+        window.onload = () => {
+            const saved = localStorage.getItem('sigep_tasks');
+            if (saved && saved.trim() !== "") {
+                document.getElementById('taskContainer').innerHTML = saved;
+                updateStats();
+            } else {
+                // Add a default task if empty
+                addTask("Example: Market Research - Auburn", "High", "October 2026");
+            }
+        };
 
-// ── CLEAR SHEETS ─────────────────────────────────────────────
-function clearAllSheets(ss) {
-  ['📋 Tasks','📊 Dashboard','👤 My Tasks','📖 Guide'].forEach(name => {
-    let sh = ss.getSheetByName(name);
-    if (sh) { sh.clear(); sh.clearConditionalFormatRules(); }
-    else { ss.insertSheet(name); }
-  });
-}
+        // Save data to browser memory
+        function save() {
+            const content = document.getElementById('taskContainer').innerHTML;
+            localStorage.setItem('sigep_tasks', content);
+            updateStats();
+        }
 
-// ── TASK SHEET ───────────────────────────────────────────────
-function buildTaskSheet(ss, savedEdits) {
-  const sh = ss.getSheetByName('📋 Tasks');
-  sh.setTabColor(C.RED);
-  
-  // Column widths
-  sh.setColumnWidth(1, 12);   // Color bar
-  sh.setColumnWidth(2, 130);  // Status
-  sh.setColumnWidth(3, 360);  // Task
-  sh.setColumnWidth(4, 160);  // Owner
-  sh.setColumnWidth(5, 80);   // Deadline
-  sh.setColumnWidth(6, 100);  // Chapter
-  sh.setColumnWidth(7, 150);  // Output
-  sh.setColumnWidth(8, 280);  // Notes
-  
-  // ── ROW 1: MAIN HEADER ──────────────────────────────────
-  sh.setRowHeight(1, 56);
-  const headerRange = sh.getRange('A1:H1');
-  headerRange.merge();
-  headerRange.setValue('ΣΦΕ  SIGMA PHI EPSILON — EXPANSION TASK PORTAL');
-  headerRange.setBackground(C.NAVY);
-  headerRange.setFontColor(C.WHITE);
-  headerRange.setFontFamily('Georgia');
-  headerRange.setFontSize(16);
-  headerRange.setFontWeight('bold');
-  headerRange.setHorizontalAlignment('center');
-  headerRange.setVerticalAlignment('middle');
-  
-  // Gold accent bar under header
-  sh.setRowHeight(2, 4);
-  sh.getRange('A2:H2').setBackground(C.RED);
-  
-  // ── ROW 3: STATS BAR ────────────────────────────────────
-  sh.setRowHeight(3, 36);
-  const active = TASKS.filter(t => t[0] !== 'Complete');
-  const done   = TASKS.filter(t => t[0] === 'Complete');
-  const counts = {};
-  STATUS_LIST.forEach(s => { counts[s] = TASKS.filter(t => t[0] === s).length; });
-  
-  const statsText = [
-    `📋  ${active.length} Active`,
-    `⚡  ${TASKS.filter(t => t[6].startsWith('✅')).length} Outputs`,
-    `✅  ${done.length} Complete`,
-    `🔴  ${counts['Behind']} Behind`,
-    `🟠  ${counts['Stuck']} Stuck`,
-    `🟡  ${counts['Not Started']} Not Started`,
-    `🔵  ${counts['In Progress']} In Progress`,
-    `🟣  ${counts['Needs Review']} Needs Review`,
-  ].join('     ');
-  
-  const statsRange = sh.getRange('A3:H3');
-  statsRange.merge();
-  statsRange.setValue(statsText);
-  statsRange.setBackground(C.NAVY_LIGHT);
-  statsRange.setFontColor(C.NAVY);
-  statsRange.setFontSize(11);
-  statsRange.setFontWeight('bold');
-  statsRange.setHorizontalAlignment('center');
-  statsRange.setVerticalAlignment('middle');
-  
-  sh.setRowHeight(4, 4);
-  sh.getRange('A4:H4').setBackground(C.GRAY_MED);
-  
-  // ── ROW 5: COLUMN HEADERS ───────────────────────────────
-  sh.setRowHeight(5, 34);
-  const colHeaders = ['', 'STATUS', 'TASK / ACTION ITEM', 'OWNER(S)', 'DEADLINE', 'CHAPTER', 'CLAUDE OUTPUT', 'NOTES'];
-  const hRow = sh.getRange(5, 1, 1, 8);
-  hRow.setValues([colHeaders]);
-  hRow.setBackground(C.NAVY);
-  hRow.setFontColor(C.GOLD);
-  hRow.setFontFamily('Arial');
-  hRow.setFontSize(10);
-  hRow.setFontWeight('bold');
-  hRow.setHorizontalAlignment('center');
-  hRow.setVerticalAlignment('middle');
-  sh.getRange(5, 3).setHorizontalAlignment('left');
-  sh.getRange(5, 4).setHorizontalAlignment('left');
-  sh.getRange(5, 8).setHorizontalAlignment('left');
-  
-  // Freeze rows
-  sh.setFrozenRows(5);
-  
-  
-  // ── SORT TASKS ──────────────────────────────────────────
-  const statusOrder = {'Behind':0,'Stuck':1,'Not Started':2,'In Progress':3,'Needs Review':4,'Complete':5};
-  const sorted = [...TASKS].sort((a, b) => {
-    const sA = statusOrder[a[0]] ?? 9;
-    const sB = statusOrder[b[0]] ?? 9;
-    if (sA !== sB) return sA - sB;
-    if (a[7] && !b[7]) return -1; // New Auburn items first within group
-    if (!a[7] && b[7]) return 1;
-    return 0;
-  });
-  
-  // ── WRITE TASKS ─────────────────────────────────────────
-  let rowNum = 6;
-  let lastSection = null;
-  
-  sorted.forEach(task => {
-    const [statusOrig, taskName, ownerOrig, deadlineOrig, chapter, output, notesOrig, isNew] = task;
-    
-    // Apply any saved user edits
-    const edit = savedEdits[taskName];
-    const status   = (edit && edit.status && STATUS_LIST.includes(edit.status)) ? edit.status : statusOrig;
-    const owner    = (edit && edit.owner)    ? edit.owner    : ownerOrig;
-    const deadline = (edit && edit.deadline) ? edit.deadline : deadlineOrig;
-    const notes    = (edit && edit.notes)    ? edit.notes    : notesOrig;
-    
-    const sc = STATUS_MAP[status] || STATUS_MAP['Not Started'];
-    
-    // Section divider when status group changes
-    const section = status === 'Complete' ? 'Complete' : 
-                    status === 'Behind' || status === 'Stuck' ? 'Urgent' : 'Active';
-    if (section !== lastSection) {
-      if (lastSection !== null) {
-        sh.setRowHeight(rowNum, 8);
-        sh.getRange(rowNum, 1, 1, 8).setBackground(C.GRAY_LIGHT);
-        rowNum++;
-      }
-      const sectionLabel = section === 'Complete' ? '✅  COMPLETED ITEMS' :
-                          section === 'Urgent' ? '🔴  URGENT — BEHIND & STUCK' :
-                          '📋  ACTIVE ITEMS';
-      sh.setRowHeight(rowNum, 24);
-      const sDiv = sh.getRange(rowNum, 1, 1, 8);
-      sDiv.merge();
-      sDiv.setValue(sectionLabel);
-      sDiv.setBackground(C.NAVY);
-      sDiv.setFontColor(section === 'Urgent' ? C.RED : C.GOLD);
-      sDiv.setFontSize(10);
-      sDiv.setFontWeight('bold');
-      sDiv.setHorizontalAlignment('left');
-      sDiv.setVerticalAlignment('middle');
-      sh.getRange(rowNum, 1, 1, 8).setFontFamily('Arial');
-      // indent
-      sh.getRange(rowNum, 2).setValue('  ' + sectionLabel);
-      sh.getRange(rowNum, 1, 1, 8).merge();
-      sh.getRange(rowNum, 1).setValue('  ' + sectionLabel);
-      lastSection = section;
-      rowNum++;
-    }
-    
-    sh.setRowHeight(rowNum, 42);
-    
-    // Color bar column (A)
-    sh.getRange(rowNum, 1).setBackground(sc.bar);
-    
-    // Status (B) — with dropdown
-    const statusCell = sh.getRange(rowNum, 2);
-    statusCell.setValue(status);
-    statusCell.setBackground(sc.bg);
-    statusCell.setFontColor(sc.fg);
-    statusCell.setFontWeight('bold');
-    statusCell.setFontSize(11);
-    statusCell.setHorizontalAlignment('center');
-    statusCell.setVerticalAlignment('middle');
-    statusCell.setFontFamily('Arial');
-    
-    // Task (C)
-    const taskCell = sh.getRange(rowNum, 3);
-    taskCell.setValue(taskName);
-    taskCell.setFontSize(12);
-    taskCell.setFontFamily('Arial');
-    taskCell.setVerticalAlignment('middle');
-    taskCell.setWrap(true);
-    if (isNew) {
-      taskCell.setFontColor(C.RED);
-      taskCell.setFontWeight('bold');
-      sh.getRange(rowNum, 1, 1, 8).setBackground(C.GOLD_LIGHT);
-      sh.getRange(rowNum, 1).setBackground(sc.bar);
-      sh.getRange(rowNum, 2).setBackground(sc.bg);
-    } else {
-      taskCell.setFontColor(status === 'Complete' ? C.GRAY_DARK : C.TEXT);
-      if (status === 'Complete') taskCell.setFontLine('line-through');
-    }
-    
-    // Owner (D)
-    const ownerCell = sh.getRange(rowNum, 4);
-    ownerCell.setValue(owner);
-    ownerCell.setFontSize(11);
-    ownerCell.setFontFamily('Arial');
-    ownerCell.setFontColor(C.TEXT_MED);
-    ownerCell.setVerticalAlignment('middle');
-    ownerCell.setWrap(true);
-    if (!isNew) ownerCell.setBackground(rowNum % 2 === 0 ? C.OFF_WHITE : C.WHITE);
-    
-    // Deadline (E)
-    const dlCell = sh.getRange(rowNum, 5);
-    dlCell.setValue(deadline);
-    dlCell.setHorizontalAlignment('center');
-    dlCell.setFontFamily('Arial');
-    dlCell.setFontSize(11);
-    dlCell.setVerticalAlignment('middle');
-    if (!isNew) dlCell.setBackground(rowNum % 2 === 0 ? C.OFF_WHITE : C.WHITE);
-    
-    // Chapter (F)
-    const chCell = sh.getRange(rowNum, 6);
-    chCell.setValue(chapter);
-    chCell.setHorizontalAlignment('center');
-    chCell.setFontFamily('Arial');
-    chCell.setFontSize(11);
-    chCell.setVerticalAlignment('middle');
-    if (chapter) { chCell.setBackground(C.NAVY_LIGHT); chCell.setFontColor(C.NAVY); chCell.setFontWeight('bold'); }
-    else if (!isNew) chCell.setBackground(rowNum % 2 === 0 ? C.OFF_WHITE : C.WHITE);
-    
-    // Output (G)
-    const outCell = sh.getRange(rowNum, 7);
-    outCell.setValue(output || '—');
-    outCell.setHorizontalAlignment('center');
-    outCell.setFontFamily('Arial');
-    outCell.setFontSize(10);
-    outCell.setVerticalAlignment('middle');
-    if (output && output.startsWith('✅')) {
-      outCell.setBackground(C.GOLD_LIGHT);
-      outCell.setFontColor('#7a5c0a');
-      outCell.setFontWeight('bold');
-    } else {
-      outCell.setFontColor(C.GRAY_DARK);
-      if (!isNew) outCell.setBackground(rowNum % 2 === 0 ? C.OFF_WHITE : C.WHITE);
-    }
-    
-    // Notes (H)
-    const notesCell = sh.getRange(rowNum, 8);
-    notesCell.setValue(notes);
-    notesCell.setFontSize(11);
-    notesCell.setFontFamily('Arial');
-    notesCell.setFontColor(C.GRAY_DARK);
-    notesCell.setVerticalAlignment('middle');
-    notesCell.setWrap(true);
-    if (!isNew) notesCell.setBackground(rowNum % 2 === 0 ? C.OFF_WHITE : C.WHITE);
-    
-    // Border
-    sh.getRange(rowNum, 1, 1, 8).setBorder(
-      true, false, true, false, false, false,
-      C.GRAY_MED, SpreadsheetApp.BorderStyle.SOLID
-    );
-    
-    // Status dropdown validation
-    const rule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(STATUS_LIST, true)
-      .setAllowInvalid(false)
-      .build();
-    statusCell.setDataValidation(rule);
-    
-    rowNum++;
-  });
-  
-  // ── LEGEND FOOTER ────────────────────────────────────────
-  rowNum += 1;
-  sh.setRowHeight(rowNum, 6);
-  sh.getRange(rowNum, 1, 1, 8).setBackground(C.GRAY_MED);
-  rowNum++;
-  sh.setRowHeight(rowNum, 30);
-  const legend = sh.getRange(rowNum, 1, 1, 8);
-  legend.merge();
-  legend.setValue('  ✏️  Editing: Click Status to change via dropdown. Edit Owner, Deadline, or Notes cells directly.     🔶  Gold rows = New Auburn action items from March 23 preheat.     ✅  Gold cells in Output column = Claude has produced a deliverable for this task.');
-  legend.setBackground(C.NAVY_LIGHT);
-  legend.setFontColor(C.NAVY);
-  legend.setFontSize(10);
-  legend.setVerticalAlignment('middle');
-  legend.setFontFamily('Arial');
-  
-  // ── CONDITIONAL FORMATTING ───────────────────────────────
-  const dataRange = sh.getRange(6, 2, rowNum - 6, 1);
-  const cfRules = [];
-  Object.entries(STATUS_MAP).forEach(([status, colors]) => {
-    const rule = SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo(status)
-      .setBackground(colors.bg)
-      .setFontColor(colors.fg)
-      .setRanges([dataRange])
-      .build();
-    cfRules.push(rule);
-  });
-  sh.setConditionalFormatRules(cfRules);
-}
+        function updateStats() {
+            const count = document.querySelectorAll('.task-card').length;
+            document.getElementById('totalCount').innerText = count;
+        }
 
-// ── DASHBOARD SHEET ──────────────────────────────────────────
-function buildDashboard(ss) {
-  const sh = ss.getSheetByName('📊 Dashboard');
-  sh.setTabColor(C.GOLD);
-  sh.setColumnWidth(1, 20);
-  sh.setColumnWidth(2, 220);
-  sh.setColumnWidth(3, 120);
-  sh.setColumnWidth(4, 120);
-  sh.setColumnWidth(5, 220);
-  sh.setColumnWidth(6, 120);
-  sh.setColumnWidth(7, 20);
-  
-  // Header
-  sh.setRowHeight(1, 56);
-  sh.getRange('A1:G1').merge();
-  sh.getRange('A1').setValue('ΣΦΕ  EXPANSION DASHBOARD');
-  sh.getRange('A1:G1').setBackground(C.NAVY).setFontColor(C.GOLD).setFontSize(18).setFontWeight('bold').setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Georgia');
-  sh.setRowHeight(2, 4);
-  sh.getRange('A2:G2').setBackground(C.RED);
-  
-  sh.setRowHeight(3, 24);
-  const updTime = `Last updated: ${new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'})}`;
-  sh.getRange('A3:G3').merge();
-  sh.getRange('A3').setValue(updTime);
-  sh.getRange('A3:G3').setBackground(C.NAVY_LIGHT).setFontColor(C.NAVY).setFontSize(11).setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
-  
-  sh.setRowHeight(4, 12);
-  
-  // Status summary cards
-  const counts = {};
-  STATUS_LIST.forEach(s => { counts[s] = TASKS.filter(t => t[0] === s).length; });
-  const active = TASKS.filter(t => t[0] !== 'Complete').length;
-  
-  sh.setRowHeight(5, 24);
-  sh.getRange('B5:F5').merge();
-  sh.getRange('B5').setValue('TASK STATUS BREAKDOWN');
-  sh.getRange('B5:F5').setBackground(C.NAVY).setFontColor(C.GOLD).setFontSize(10).setFontWeight('bold').setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
-  
-  const cardData = [
-    ['Behind',       counts['Behind'],       C.BEHIND_BG,   C.BEHIND_FG,   C.BEHIND_BAR],
-    ['Stuck',        counts['Stuck'],         C.STUCK_BG,    C.STUCK_FG,    C.STUCK_BAR],
-    ['Not Started',  counts['Not Started'],   C.NOTSTART_BG, C.NOTSTART_FG, C.NOTSTART_BAR],
-    ['In Progress',  counts['In Progress'],   C.INPROG_BG,   C.INPROG_FG,   C.INPROG_BAR],
-    ['Needs Review', counts['Needs Review'],  C.REVIEW_BG,   C.REVIEW_FG,   C.REVIEW_BAR],
-    ['Complete',     counts['Complete'],      C.DONE_BG,     C.DONE_FG,     C.DONE_BAR],
-  ];
-  
-  let row = 6;
-  cardData.forEach(([label, count, bg, fg, bar]) => {
-    sh.setRowHeight(row, 44);
-    sh.getRange(row, 1).setBackground(bar);
-    sh.getRange(row, 2).setValue(label).setBackground(bg).setFontColor(fg).setFontWeight('bold').setFontSize(13).setVerticalAlignment('middle').setFontFamily('Arial');
-    sh.getRange(row, 3).setValue(count).setBackground(bg).setFontColor(fg).setFontWeight('bold').setFontSize(20).setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Georgia');
-    sh.getRange(row, 4).setValue('tasks').setBackground(bg).setFontColor(fg).setFontSize(11).setVerticalAlignment('middle').setFontFamily('Arial');
-    sh.getRange(row, 5, 1, 3).setBackground(bg);
-    row++;
-  });
-  
-  sh.setRowHeight(row, 12); row++;
-  
-  // Totals
-  sh.setRowHeight(row, 36);
-  sh.getRange(row, 1, 1, 7).setBackground(C.NAVY);
-  sh.getRange(row, 2).setValue(`TOTAL ACTIVE: ${active}`).setFontColor(C.GOLD).setFontWeight('bold').setFontSize(13).setVerticalAlignment('middle').setFontFamily('Arial').setBackground(C.NAVY);
-  sh.getRange(row, 4).setValue(`TOTAL COMPLETE: ${counts['Complete']}`).setFontColor(C.DONE_FG).setFontWeight('bold').setFontSize(13).setVerticalAlignment('middle').setFontFamily('Arial').setBackground(C.NAVY);
-  sh.getRange(row, 6).setValue(`OUTPUTS READY: ${TASKS.filter(t=>t[6].startsWith('✅')).length}`).setFontColor(C.GOLD).setFontWeight('bold').setFontSize(13).setVerticalAlignment('middle').setFontFamily('Arial').setBackground(C.NAVY);
-  row++;
-  
-  sh.setRowHeight(row, 12); row++;
-  
-  // Active sites
-  sh.setRowHeight(row, 24);
-  sh.getRange(row, 2, 1, 5).merge();
-  sh.getRange(row, 2).setValue('ACTIVE SITE STATUS');
-  sh.getRange(row, 1, 1, 7).setBackground(C.NAVY);
-  sh.getRange(row, 2, 1, 5).setFontColor(C.GOLD).setFontSize(10).setFontWeight('bold').setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
-  row++;
-  
-  const sites = [
-    ['Auburn',       '🔵 Preheat Complete', 'Meetings done 3/23. AVC formation underway. John Wagner meeting 3/24.'],
-    ['TN Alpha',     '🟡 Active', 'Presentation created. Sean Croker call pending. UTK finance data received.'],
-    ['Ole Miss',     '🔵 Presentation Pending', 'April IFC presidents meeting confirmed. Dates sent to Jess Turuc.'],
-    ['Miami',        '🟣 Needs Review', 'Presentation + packet in review. Add 12/2 template changes.'],
-    ['TX Tech',      '🟡 Visit Scheduled', 'Flights booked. AirBNB pending. Website content ready.'],
-    ['Idaho State',  '🔴 Stuck', 'Grade not yet completed. John Schuyler waiting.'],
-    ['Arizona State','🔴 Blocked', 'Funding issue unresolved. JSJ conversation needed.'],
-    ['Syracuse',     '🔵 Review Underway', 'Article XIV review in progress with Judson and Conner.'],
-  ];
-  
-  sites.forEach(([site, status, note]) => {
-    sh.setRowHeight(row, 36);
-    const isRed = status.includes('🔴');
-    const isBlue = status.includes('🔵');
-    const isYellow = status.includes('🟡');
-    const bg = isRed ? C.BEHIND_BG : isBlue ? C.INPROG_BG : isYellow ? C.NOTSTART_BG : C.REVIEW_BG;
-    sh.getRange(row, 1).setBackground(isRed ? C.BEHIND_BAR : isBlue ? C.INPROG_BAR : isYellow ? C.NOTSTART_BAR : C.REVIEW_BAR);
-    sh.getRange(row, 2).setValue(site).setBackground(bg).setFontWeight('bold').setFontSize(12).setVerticalAlignment('middle').setFontFamily('Arial');
-    sh.getRange(row, 3).setValue(status).setBackground(bg).setFontSize(11).setVerticalAlignment('middle').setFontFamily('Arial');
-    sh.getRange(row, 4, 1, 3).merge();
-    sh.getRange(row, 4).setValue(note).setBackground(bg).setFontSize(10).setFontColor(C.TEXT_MED).setVerticalAlignment('middle').setWrap(true).setFontFamily('Arial');
-    sh.getRange(row, 7).setBackground(bg);
-    row++;
-  });
-  
-  sh.setFrozenRows(3);
-}
+        function toggleTask(element) {
+            element.closest('.task-card').classList.toggle('expanded');
+        }
 
-// ── OWNER VIEW SHEET ─────────────────────────────────────────
-function buildOwnerViews(ss) {
-  const sh = ss.getSheetByName('👤 My Tasks');
-  sh.setTabColor(C.RED);
-  sh.setColumnWidth(1, 12);
-  sh.setColumnWidth(2, 130);
-  sh.setColumnWidth(3, 340);
-  sh.setColumnWidth(4, 80);
-  sh.setColumnWidth(5, 100);
-  sh.setColumnWidth(6, 140);
-  sh.setColumnWidth(7, 260);
-  
-  sh.setRowHeight(1, 56);
-  sh.getRange('A1:G1').merge();
-  sh.getRange('A1').setValue('ΣΦΕ  MY TASKS — Personal View');
-  sh.getRange('A1:G1').setBackground(C.NAVY).setFontColor(C.GOLD).setFontSize(16).setFontWeight('bold').setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Georgia');
-  sh.setRowHeight(2, 4);
-  sh.getRange('A2:G2').setBackground(C.RED);
-  sh.setRowHeight(3, 28);
-  sh.getRange('A3:G3').merge();
-  sh.getRange('A3').setValue('  ℹ️  Use Ctrl+F (or Cmd+F on Mac) to search for your name. All tasks assigned to you are listed below, grouped by owner.');
-  sh.getRange('A3:G3').setBackground(C.NAVY_LIGHT).setFontColor(C.NAVY).setFontSize(11).setHorizontalAlignment('left').setVerticalAlignment('middle').setFontFamily('Arial');
-  sh.setRowHeight(4, 4);
-  sh.getRange('A4:G4').setBackground(C.GRAY_MED);
-  
-  // Get all unique owners
-  const owners = new Set();
-  TASKS.forEach(t => {
-    t[2].split(',').forEach(o => { const n = o.trim(); if (n) owners.add(n); });
-  });
-  
-  let row = 5;
-  [...owners].sort().forEach(owner => {
-    const ownerTasks = TASKS.filter(t => t[0] !== 'Complete' && t[2].split(',').map(o=>o.trim()).includes(owner));
-    if (!ownerTasks.length) return;
-    
-    // Owner header
-    sh.setRowHeight(row, 32);
-    const ownerHdr = sh.getRange(row, 1, 1, 7);
-    ownerHdr.merge();
-    ownerHdr.setValue(`  👤  ${owner.toUpperCase()}  —  ${ownerTasks.length} active task${ownerTasks.length !== 1 ? 's' : ''}`);
-    ownerHdr.setBackground(C.NAVY);
-    ownerHdr.setFontColor(C.GOLD);
-    ownerHdr.setFontSize(11);
-    ownerHdr.setFontWeight('bold');
-    ownerHdr.setFontFamily('Arial');
-    ownerHdr.setVerticalAlignment('middle');
-    row++;
-    
-    // Column headers for this section
-    sh.setRowHeight(row, 26);
-    const colHdrs = ['', 'STATUS', 'TASK', 'DEADLINE', 'CHAPTER', 'OUTPUT', 'NOTES'];
-    sh.getRange(row, 1, 1, 7).setValues([colHdrs]);
-    sh.getRange(row, 1, 1, 7).setBackground('#E8EEF5').setFontColor(C.NAVY).setFontSize(9).setFontWeight('bold').setHorizontalAlignment('center').setFontFamily('Arial');
-    sh.getRange(row, 3).setHorizontalAlignment('left');
-    sh.getRange(row, 7).setHorizontalAlignment('left');
-    row++;
-    
-    ownerTasks.forEach(task => {
-      const [status, taskName, , deadline, chapter, output, notes] = task;
-      const sc = STATUS_MAP[status] || STATUS_MAP['Not Started'];
-      sh.setRowHeight(row, 38);
-      sh.getRange(row, 1).setBackground(sc.bar);
-      sh.getRange(row, 2).setValue(status).setBackground(sc.bg).setFontColor(sc.fg).setFontWeight('bold').setFontSize(10).setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
-      sh.getRange(row, 3).setValue(taskName).setFontSize(12).setVerticalAlignment('middle').setWrap(true).setFontFamily('Arial').setFontColor(C.TEXT);
-      sh.getRange(row, 4).setValue(deadline).setHorizontalAlignment('center').setFontSize(11).setVerticalAlignment('middle').setFontFamily('Arial').setFontColor(C.TEXT_MED);
-      sh.getRange(row, 5).setValue(chapter).setHorizontalAlignment('center').setFontSize(10).setVerticalAlignment('middle').setFontFamily('Arial');
-      if (chapter) { sh.getRange(row, 5).setBackground(C.NAVY_LIGHT).setFontColor(C.NAVY).setFontWeight('bold'); }
-      sh.getRange(row, 6).setValue(output || '—').setHorizontalAlignment('center').setFontSize(10).setVerticalAlignment('middle').setFontFamily('Arial');
-      if (output && output.startsWith('✅')) { sh.getRange(row, 6).setBackground(C.GOLD_LIGHT).setFontColor('#7a5c0a').setFontWeight('bold'); }
-      sh.getRange(row, 7).setValue(notes).setFontSize(10).setVerticalAlignment('middle').setWrap(true).setFontFamily('Arial').setFontColor(C.GRAY_DARK);
-      const rowBg = row % 2 === 0 ? C.OFF_WHITE : C.WHITE;
-      [3,4,7].forEach(col => { if (!chapter || col !== 5) sh.getRange(row, col).setBackground(rowBg); });
-      sh.getRange(row, 1, 1, 7).setBorder(false, false, true, false, false, false, C.GRAY_MED, SpreadsheetApp.BorderStyle.SOLID);
-      row++;
-    });
-    
-    sh.setRowHeight(row, 8); row++;
-  });
-  
-  sh.setFrozenRows(4);
-}
+        function addTask(title = "New Expansion Task", priority = "Normal", date = "Set Date") {
+            const container = document.getElementById('taskContainer');
+            const div = document.createElement('div');
+            div.className = "task-card bg-white border border-slate-200 rounded-xl shadow-sm hover:border-indigo-300 overflow-hidden";
+            
+            div.innerHTML = `
+                <div class="p-4 cursor-pointer flex items-center justify-between" onclick="toggleTask(this)">
+                    <div class="flex items-center space-x-4">
+                        <div class="h-8 w-8 bg-indigo-50 text-indigo-600 rounded flex items-center justify-center">
+                            <i class="fas fa-tasks text-sm"></i>
+                        </div>
+                        <div>
+                            <h3 contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="font-bold text-slate-800">${title}</h3>
+                            <div class="flex space-x-3 mt-1">
+                                <span contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-[10px] font-bold uppercase tracking-widest text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded">${priority}</span>
+                                <span contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-[10px] font-medium text-slate-400"><i class="far fa-calendar mr-1"></i>${date}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <i class="fas fa-chevron-down chevron text-slate-300 text-xs transition-transform"></i>
+                    </div>
+                </div>
+                
+                <div class="expanded-content px-12 pb-5 bg-slate-50/50 border-t border-slate-100">
+                    <div class="py-4">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Detailed Notes & Owner</label>
+                        <div contenteditable="true" onblur="save()" class="text-sm text-slate-600 leading-relaxed min-h-[60px]">
+                            Add owner names, specific project goals, and next steps here...
+                        </div>
+                    </div>
+                    <div class="flex justify-end border-t border-slate-200 pt-4">
+                        <button onclick="this.closest('.task-card').remove(); save();" class="text-xs font-bold text-red-400 hover:text-red-600 transition">
+                            <i class="fas fa-trash-alt mr-1"></i> DELETE TASK
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            container.prepend(div);
+            save();
+        }
 
-// ── GUIDE SHEET ──────────────────────────────────────────────
-function buildGuide(ss) {
-  const sh = ss.getSheetByName('📖 Guide');
-  sh.setTabColor(C.NAVY);
-  sh.setColumnWidth(1, 24);
-  sh.setColumnWidth(2, 400);
-  sh.setColumnWidth(3, 400);
-  
-  sh.setRowHeight(1, 56);
-  sh.getRange('A1:C1').merge();
-  sh.getRange('A1').setValue('ΣΦΕ  TASK PORTAL — GUIDE & LEGEND');
-  sh.getRange('A1:C1').setBackground(C.NAVY).setFontColor(C.GOLD).setFontSize(16).setFontWeight('bold').setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Georgia');
-  sh.setRowHeight(2, 4); sh.getRange('A2:C2').setBackground(C.RED);
-  
-  const guide = [
-    ['STATUS LEGEND', '', true],
-    ['Behind', '🔴 Past deadline or critically delayed. Immediate action needed.', false],
-    ['Stuck', '🟠 Blocked by external dependency or missing information.', false],
-    ['Not Started', '🟡 Queued and ready to begin.', false],
-    ['In Progress', '🔵 Actively being worked on.', false],
-    ['Needs Review', '🟣 Draft complete — awaiting approval, feedback, or sign-off.', false],
-    ['Complete', '✅ Done. No further action required.', false],
-    ['', '', false],
-    ['HOW TO USE THIS PORTAL', '', true],
-    ['Change a status', 'Click the Status cell on the Tasks tab → select from dropdown', false],
-    ['Edit a task', 'Click directly into Owner, Deadline, or Notes cells and type', false],
-    ['Add a task', 'Scroll to bottom of 📋 Tasks tab → add a new row manually', false],
-    ['Find your tasks', 'Go to 👤 My Tasks tab → Ctrl+F (Cmd+F) and search your name', false],
-    ['See big picture', 'Go to 📊 Dashboard tab for status counts and site overview', false],
-    ['', '', false],
-    ['COLUMN GUIDE', '', true],
-    ['Color Bar (col A)', 'Visual status indicator — color matches the status level', false],
-    ['Status (col B)', 'Dropdown — change to update the task status', false],
-    ['Task (col C)', 'The action item. Bold red = new from Auburn (3/23).', false],
-    ['Owner(s) (col D)', 'Who is responsible. Multiple owners separated by comma.', false],
-    ['Deadline (col E)', 'Target completion date. Edit directly.', false],
-    ['Chapter (col F)', 'Which expansion site this applies to (if applicable).', false],
-    ['Claude Output (col G)', '✅ = Claude has produced a deliverable. Open Gmail Drafts or Claude conversation to access.', false],
-    ['Notes (col H)', 'Context, links, blockers. Edit directly.', false],
-    ['', '', false],
-    ['GOLDEN ROWS', '', true],
-    ['Gold background rows', 'New action items added from the Auburn March 23 preheat. Prioritize these.', false],
-    ['', '', false],
-    ['IFC COMPLIANCE REMINDERS', '', true],
-    ['Growth cap', 'Auburn IFC allows MAX ONE new org per academic year. Confirm no other org is in pipeline with Johnny.', false],
-    ['Council vote', '2/3 of IFC Council of Presidents must vote to approve SigEp. ~18 of 27 presidents needed.', false],
-    ['30-member floor', 'Must maintain 30+ active members or face IFC Growth Committee review and potential removal.', false],
-    ['GPA floor', '2.7 chapter average GPA required for full membership. Build into founding father selection.', false],
-    ['Recruitment obligation', 'Must participate in ALL formal recruitment periods (Fall + Spring) until full membership.', false],
-    ['Registration deadline', 'Chapter Builder registration for Summer/Fall recruitment: May 1.', false],
-  ];
-  
-  let row = 3;
-  guide.forEach(([col2, col3, isHeader]) => {
-    sh.setRowHeight(row, isHeader ? 30 : (col2 === '' ? 8 : 36));
-    if (isHeader) {
-      sh.getRange(row, 1, 1, 3).merge();
-      sh.getRange(row, 1).setValue('  ' + col2);
-      sh.getRange(row, 1, 1, 3).setBackground(C.NAVY).setFontColor(C.GOLD).setFontSize(11).setFontWeight('bold').setVerticalAlignment('middle').setFontFamily('Arial');
-    } else if (col2 === '') {
-      sh.getRange(row, 1, 1, 3).setBackground(C.GRAY_LIGHT);
-    } else {
-      sh.getRange(row, 1).setBackground(C.GOLD);
-      sh.getRange(row, 2).setValue(col2).setBackground(rowBg(row)).setFontSize(11).setFontWeight('bold').setVerticalAlignment('middle').setWrap(true).setFontFamily('Arial').setFontColor(C.TEXT);
-      sh.getRange(row, 3).setValue(col3).setBackground(rowBg(row)).setFontSize(11).setVerticalAlignment('middle').setWrap(true).setFontFamily('Arial').setFontColor(C.TEXT_MED);
-    }
-    row++;
-  });
-  sh.setFrozenRows(2);
-}
-
-function rowBg(row) { return row % 2 === 0 ? '#F8F7F4' : '#FFFFFF'; }
+        // Listen for all edits to save immediately
+        document.addEventListener('input', (e) => {
+            if (e.target.hasAttribute('contenteditable')) {
+                save();
+            }
+        });
+    </script>
+</body>
+</html>
