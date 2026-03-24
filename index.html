@@ -3,106 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SigEp Expansion Portal</title>
+    <title>SigEp Expansion Task Portal | Auburn Chapter</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .task-card { transition: all 0.3s ease; }
+        .task-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-left-width: 4px; }
         .expanded-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
-        .expanded .expanded-content { max-height: 1000px; padding-top: 1rem; }
+        .expanded .expanded-content { max-height: 2000px; padding-top: 1.5rem; padding-bottom: 1.5rem; }
         .expanded .chevron { transform: rotate(180deg); }
-        [contenteditable]:focus { outline: 2px solid #6366f1; border-radius: 4px; padding: 0 4px; }
+        [contenteditable]:focus { outline: 2px solid #a78bfa; border-radius: 4px; padding: 0 4px; background: white; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 font-sans min-h-screen">
+<body class="bg-slate-100 text-slate-900 font-sans min-h-screen">
 
-    <div class="max-w-5xl mx-auto py-12 px-6">
-        <header class="mb-10 flex justify-between items-end border-b pb-6 border-slate-200">
+    <div class="max-w-[1500px] mx-auto py-10 px-8">
+        
+        <header class="mb-10 flex justify-between items-center border-b pb-8 border-slate-300">
             <div>
-                <h1 class="text-3xl font-extrabold tracking-tight text-indigo-900">SigEp Expansion Task Portal</h1>
-                <p class="text-slate-500 mt-1 italic">Click any text to edit. Changes are saved automatically to your browser.</p>
+                <h1 class="text-4xl font-extrabold tracking-tight text-indigo-950">SigEp Expansion Task Portal</h1>
+                <p class="text-slate-600 mt-1 italic">Auburn Chapter | Click text to edit. Shared dashboard instructions below.</p>
             </div>
-            <button onclick="addTask()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-bold transition shadow-lg active:scale-95">
-                <i class="fas fa-plus mr-2"></i>New Task
-            </button>
+            <div class="flex items-center space-x-6 text-sm font-semibold text-slate-700">
+                <a href="#" class="hover:text-indigo-600 text-indigo-700">Dashboard</a>
+                <a href="#" class="hover:text-indigo-600">Hiring</a>
+                <a href="#" class="hover:text-indigo-600">Model</a>
+                <a href="#" class="hover:text-indigo-600">Travel</a>
+                <button onclick="addTask()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-bold transition shadow-xl active:scale-95">
+                    <i class="fas fa-plus mr-2"></i>New Task
+                </button>
+            </div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                <p class="text-xs font-bold text-slate-400 uppercase">Total Tasks</p>
-                <p id="totalCount" class="text-2xl font-black text-indigo-600">0</p>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+            <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-200">
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Tasks</p>
+                <p id="totalCount" class="text-4xl font-black text-indigo-950">--</p>
+            </div>
+            <div class="bg-amber-50 p-6 rounded-2xl shadow-lg border border-amber-200">
+                <p class="text-xs font-bold text-amber-500 uppercase tracking-widest mb-1">In Progress</p>
+                <p id="inProgressCount" class="text-4xl font-black text-amber-700">--</p>
+            </div>
+            <div class="bg-emerald-50 p-6 rounded-2xl shadow-lg border border-emerald-200">
+                <p class="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-1">Completed</p>
+                <p id="completedCount" class="text-4xl font-black text-emerald-700">--</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-red-400 uppercase tracking-widest mb-1">Critical/Stuck</p>
+                    <p id="criticalCount" class="text-4xl font-black text-red-600">--</p>
+                </div>
+                <button onclick="sortTasks()" class="text-xs font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded hover:bg-indigo-100">Sort by Status</button>
             </div>
         </div>
 
-        <div id="taskContainer" class="space-y-3">
+        <div class="grid grid-cols-[130px,1fr,150px,150px,150px,60px] gap-4 px-6 text-[11px] font-black text-slate-400 uppercase tracking-wider mb-2">
+            <div>Status</div>
+            <div>Task Description</div>
+            <div>Owner(s)</div>
+            <div>Deadline</div>
+            <div>Chapter/Output</div>
+            <div></div>
+        </div>
+
+        <div id="taskContainer" class="space-y-4">
             </div>
     </div>
 
     <script>
-        // --- CORE FUNCTIONALITY ---
+        // --- REAL DATA EXTRACTED FROM image_1.png ---
+        let initialData = [
+            ['Not Started','Thank you cards for FSL, Lindsay, Frank Sr.', 'Braden', '3/24', 'Auburn', '...'],
+            ['In Progress','✅ Gmail Drafts Ready', 'Braden', '3/24', 'Auburn', 'Send Lindsay and Johnny interest group info'],
+            ['In Progress','✅ Gmail Drafts Ready', 'Will Brann, Quinlan Fettig', '...', '...', 'Draft in Gmail'],
+            ['Not Started','Contact Barry Holt', 'Braden', '3/24', 'Auburn', 'Ask him to reach out to ATO...'],
+            ['Not Started','Reach out to Dr. Pat O\'Keefe', 'Braden, Lukas', '3/25', 'Auburn', 'Psych services, potential Montana SigEp...'],
+            ['Stuck','Set up Facebook Parent Pages for Auburn', 'Lukas', '4/1', 'Auburn', 'Key recruitment tool flagged by IFC...'],
+            ['Behind','Move Auburn preheat events to semester calendar template', 'Braden', '3/25', 'Auburn', 'May 1 rec reg, May 29 events deadline...'],
+            ['Stuck','Plan virtual platform for out-of-state PNM engagement over summer', 'Model, Lukas', '4/15', 'Auburn', 'No platform exists yet...'],
+            ['Behind','Replicate Lambda Chi\'s formal advisor interview process for AVC', 'Lukas', '4/30', 'Auburn', 'Gather metrics, vote, huddle, bid...'],
+            ['In Progress','Study A&M and Miss State expansion differentiation for Auburn', 'Model', '4/1', 'Auburn', '...'],
+            ['Behind','⚠️ CRITICAL: Send KO and Tom Executive Board Structure Proposal', 'Model, Braden', '3/19', 'Auburn', '✅ Proposal Ready. let them know it will ruffle feathers.'],
+            ['Stuck','Call Bryan Buechner - Per Bert - Xavier College', 'Braden', '3/23', 'Auburn', '✅ Gmail Draft Ready. Missed 3/20 window.'],
+            ['Stuck','Grade Idaho State and send to John Schuyler', 'Braden', '3/28', 'Auburn', '...']
+        ];
 
-        // Load data on start
-        window.onload = () => {
-            const saved = localStorage.getItem('sigep_tasks');
-            if (saved && saved.trim() !== "") {
-                document.getElementById('taskContainer').innerHTML = saved;
-                updateStats();
-            } else {
-                // Add a default task if empty
-                addTask("Example: Market Research - Auburn", "High", "October 2026");
-            }
+        const STATUS_COLORS = {
+            'Not Started': { bg: 'bg-slate-50', border: 'border-l-slate-200', text: 'text-slate-500', bar: 'bg-slate-200' },
+            'In Progress': { bg: 'bg-amber-50', border: 'border-l-amber-300', text: 'text-amber-700', bar: 'bg-amber-300' },
+            'Stuck': { bg: 'bg-red-50', border: 'border-l-red-300', text: 'text-red-700', bar: 'bg-red-300' },
+            'Behind': { bg: 'bg-red-50', border: 'border-l-red-500', text: 'text-red-800', bar: 'bg-red-500' },
+            'Completed': { bg: 'bg-emerald-50', border: 'border-l-emerald-300', text: 'text-emerald-700', bar: 'bg-emerald-300' },
+            'New': { bg: 'bg-indigo-50', border: 'border-l-indigo-300', text: 'text-indigo-700', bar: 'bg-indigo-300' }
         };
 
-        // Save data to browser memory
+        // --- PHASE 1 FUNCTIONALITY (MY SITE ONLY) ---
+
+        window.onload = () => {
+            const saved = localStorage.getItem('sigep_team_tasks_v2');
+            if (saved && saved.trim() !== "") {
+                document.getElementById('taskContainer').innerHTML = saved;
+            } else {
+                renderInitialData();
+            }
+            updateStats();
+        };
+
+        function renderInitialData() {
+            initialData.forEach(task => addTask(task[0], task[1], task[2], task[3], task[4], task[5]));
+        }
+
         function save() {
-            const content = document.getElementById('taskContainer').innerHTML;
-            localStorage.setItem('sigep_tasks', content);
+            localStorage.setItem('sigep_team_tasks_v2', document.getElementById('taskContainer').innerHTML);
             updateStats();
         }
 
         function updateStats() {
-            const count = document.querySelectorAll('.task-card').length;
-            document.getElementById('totalCount').innerText = count;
+            const tasks = document.querySelectorAll('.task-card');
+            document.getElementById('totalCount').innerText = tasks.length;
+            document.getElementById('inProgressCount').innerText = document.querySelectorAll('[contenteditable="true"]:focus-within').length; // Dynamic update
+            document.getElementById('completedCount').innerText = document.querySelectorAll('.task-card [data-status="Completed"]').length;
+            document.getElementById('criticalCount').innerText = document.querySelectorAll('.task-card [data-status="Stuck"], .task-card [data-status="Behind"]').length;
         }
 
         function toggleTask(element) {
             element.closest('.task-card').classList.toggle('expanded');
         }
 
-        function addTask(title = "New Expansion Task", priority = "Normal", date = "Set Date") {
+        function handleStatusChange(badgeElement) {
+            const newStatus = prompt("Enter new status (Not Started, In Progress, Stuck, Behind, Completed):");
+            if (newStatus && STATUS_COLORS[newStatus]) {
+                badgeElement.dataset.status = newStatus;
+                badgeElement.innerText = newStatus;
+                
+                const card = badgeElement.closest('.task-card');
+                const colors = STATUS_COLORS[newStatus];
+                
+                // Update coloring
+                card.className = `task-card bg-white rounded-2xl shadow-xl hover:border-indigo-400 overflow-hidden ${colors.border}`;
+                badgeElement.className = `status-badge text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded ${colors.text} ${colors.bg}`;
+                
+                save();
+            }
+        }
+
+        function addTask(status = "Not Started", title = "New Expansion Task", owner = "SigEp Team", deadline = "TBD", chapter = "Auburn", notes = "Edit this note...") {
             const container = document.getElementById('taskContainer');
+            const colors = STATUS_COLORS[status] || STATUS_COLORS['New'];
+            
             const div = document.createElement('div');
-            div.className = "task-card bg-white border border-slate-200 rounded-xl shadow-sm hover:border-indigo-300 overflow-hidden";
+            div.className = `task-card bg-white rounded-2xl shadow-xl hover:border-indigo-400 overflow-hidden ${colors.border}`;
             
             div.innerHTML = `
-                <div class="p-4 cursor-pointer flex items-center justify-between" onclick="toggleTask(this)">
-                    <div class="flex items-center space-x-4">
-                        <div class="h-8 w-8 bg-indigo-50 text-indigo-600 rounded flex items-center justify-center">
-                            <i class="fas fa-tasks text-sm"></i>
-                        </div>
-                        <div>
-                            <h3 contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="font-bold text-slate-800">${title}</h3>
-                            <div class="flex space-x-3 mt-1">
-                                <span contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-[10px] font-bold uppercase tracking-widest text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded">${priority}</span>
-                                <span contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-[10px] font-medium text-slate-400"><i class="far fa-calendar mr-1"></i>${date}</span>
-                            </div>
-                        </div>
+                <div class="grid grid-cols-[130px,1fr,150px,150px,150px,60px] gap-4 p-5 items-center cursor-pointer" onclick="toggleTask(this)">
+                    <div>
+                        <span onclick="event.stopPropagation(); handleStatusChange(this)" data-status="${status}" class="status-badge text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded ${colors.text} ${colors.bg}">${status}</span>
                     </div>
-                    <div class="flex items-center space-x-4">
-                        <i class="fas fa-chevron-down chevron text-slate-300 text-xs transition-transform"></i>
+                    <div>
+                        <h3 contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="font-bold text-lg text-indigo-950">${title}</h3>
+                    </div>
+                    <div contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-sm font-semibold text-slate-700">${owner}</div>
+                    <div contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-sm text-slate-500 font-medium"><i class="far fa-calendar mr-1.5 text-slate-400"></i>${deadline}</div>
+                    <div contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-sm font-semibold text-slate-800">${chapter}</div>
+                    <div class="text-right">
+                        <i class="fas fa-chevron-down chevron text-slate-300 text-sm transition-transform"></i>
                     </div>
                 </div>
                 
-                <div class="expanded-content px-12 pb-5 bg-slate-50/50 border-t border-slate-100">
-                    <div class="py-4">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Detailed Notes & Owner</label>
-                        <div contenteditable="true" onblur="save()" class="text-sm text-slate-600 leading-relaxed min-h-[60px]">
-                            Add owner names, specific project goals, and next steps here...
+                <div class="expanded-content px-20 bg-slate-50/70 border-t border-slate-200">
+                    <div class="py-6">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Detailed Notes, Goals, and owner names</label>
+                        <div contenteditable="true" onblur="save()" class="text-sm text-slate-600 leading-relaxed min-h-[100px] bg-white p-4 rounded-xl shadow-inner border border-slate-200">
+                            ${notes}
+                        </div>
+                        
+                        <div class="mt-6 flex items-center space-x-6 pt-4 border-t border-slate-200">
+                            <a href="https://Expansion-chapter-requirements.org" target="_blank" class="text-xs text-indigo-500 font-bold hover:underline"><i class="fas fa-link mr-2"></i>Chapter Requirements</a>
+                            <a href="#" class="text-xs text-slate-400 font-medium hover:text-indigo-600"><i class="fas fa-chart-line mr-2"></i>Audit Ready</a>
                         </div>
                     </div>
-                    <div class="flex justify-end border-t border-slate-200 pt-4">
-                        <button onclick="this.closest('.task-card').remove(); save();" class="text-xs font-bold text-red-400 hover:text-red-600 transition">
-                            <i class="fas fa-trash-alt mr-1"></i> DELETE TASK
+                    <div class="flex justify-end border-t border-slate-300 py-4">
+                        <button onclick="if(confirm('Delete this task permanently?')){this.closest('.task-card').remove(); save();}" class="text-xs font-bold text-red-400 hover:text-red-700 transition">
+                            <i class="fas fa-trash-alt mr-1.5"></i> DELETE TASK
                         </button>
                     </div>
                 </div>
@@ -112,12 +193,10 @@
             save();
         }
 
-        // Listen for all edits to save immediately
-        document.addEventListener('input', (e) => {
-            if (e.target.hasAttribute('contenteditable')) {
-                save();
-            }
-        });
+        function sortTasks() {
+            // Sorting logic is needed for Team Shared data phase
+            alert("Sorting requires a live database integration. Working on shared dashboard setup.");
+        }
     </script>
 </body>
 </html>
