@@ -50,7 +50,11 @@
                 </h1>
                 <p class="text-zinc-500 mt-1 text-sm font-medium">Click text to edit. Everything saves automatically.</p>
             </div>
-            <div>
+            <div class="flex items-center space-x-8 text-sm font-bold text-zinc-400">
+                <a href="#" target="_blank" class="hover:text-white transition-colors">Dashboard</a>
+                <a href="#" target="_blank" class="hover:text-white transition-colors">Hiring</a>
+                <a href="#" target="_blank" class="hover:text-white transition-colors">Model</a>
+                <a href="#" target="_blank" class="hover:text-white transition-colors">Travel</a>
                 <button onclick="addBlankTask()" class="bg-white hover:bg-zinc-200 text-black px-6 py-2.5 rounded-lg font-bold transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-95 flex items-center gap-2">
                     <i class="fas fa-plus text-xs"></i> New Task
                 </button>
@@ -62,7 +66,7 @@
                 <i class="fas fa-exclamation-circle text-amber-500"></i>
                 <h2 class="font-bold text-amber-500 tracking-widest uppercase text-xs">Pending Reviews</h2>
             </div>
-            <div id="reviewList" class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div id="reviewList" class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[250px] overflow-y-auto">
                 </div>
         </div>
 
@@ -125,20 +129,95 @@
             'Completed': 'bg-emerald-950/50 text-emerald-500 border-emerald-500/30'
         };
 
+        // All tasks exported directly from the Google Sheet
         const initialTasks = [
-            ['In Progress','✅ Gmail Drafts Ready', 'Braden', '3/24', 'Send Lindsay info'],
-            ['Not Started','Contact Barry Holt', 'Braden', '3/24', 'Ask him to reach ATO'],
-            ['Not Started','Reach out to Dr. O\'Keefe', 'Braden, Lukas', '3/25', 'Psych services'],
-            ['Stuck','Set up Facebook Parent Pages', 'Lukas', '4/1', 'Recruitment tool'],
-            ['Behind','Move preheat events to calendar', 'Braden', '3/25', 'May 1 rec reg'],
-            ['Stuck','Plan virtual platform for out-of-state', 'Model, Lukas', '4/15', 'No platform exists'],
-            ['Behind','⚠️ CRITICAL: Send Exec Board Proposal', 'Model, Braden', '3/19', '✅ Proposal Ready'],
-            ['Needs Review','Call Bryan Buechner', 'Braden', '3/23', 'Missed 3/20 window']
+            ['Completed','Communicate Auburn Preheat time with Barry','Braden','3/4','-'],
+            ['Needs Review','Create TN Alpha Presentation','Braden','3/10','-'],
+            ['Completed','Convert PDF of Founding Father traits to doc format','Model','3/11','Founding Father Traits'],
+            ['Completed','Adjust incentives to match goals for 2nd Years','Braden','3/11','-'],
+            ['Not Started','Respond to Lindsay H. about meeting with interest group','Braden','3/11','-'],
+            ['Completed','Adjust Feasibility Assessment form, take out volunteer information','Braden','3/12','-'],
+            ['Completed','Adjust Feasibility Assessment form, make 1st question leading','Braden','3/12','-'],
+            ['Completed','Align internally on 5 competitor benchmark categories','Model, Braden','3/13','Site selection...'],
+            ['Completed','Lay out expectations of a founding father','Model','3/15','Founding Father Role'],
+            ['In Progress','Get Hawkins QGR goals made','Braden','3/18','-'],
+            ['Completed','Schedule Ole Miss Call week of 3/16','Braden','3/18','-'],
+            ['Stuck','Call Bryan Buechner - Per Bert - Xavier College','Braden','3/18','Emailed 3/12'],
+            ['Completed','Swap all Canva items over to Support account','Braden','3/18','See Notes'],
+            ['Not Started','Bump email to Barry Holt - Auburn Visit','Braden','3/18','-'],
+            ['Completed','Schedule call week of 3/22 w/ Tom and KO','Braden','3/18','-'],
+            ['Completed','Make Luke L Basketball Bracket','Braden','3/18','-'],
+            ['Completed','Make Chris Basketball Bracket','Braden','3/18','-'],
+            ['Completed','Make CST Basketball Bracket','Braden','3/18','-'],
+            ['Completed','Add Auburn Preheat Agenda to calendar','Braden','3/18','-'],
+            ['Not Started','Call Sean Croker - TN Alpha Presentation','Braden','3/18','-'],
+            ['In Progress','Update tracker for where we are at with outreach to Uni\\'s','Braden','3/19','-'],
+            ['Needs Review','Internally identify 3 things per SEC that would get them back on track','Model, Lukas, Braden, Judson, Rece, Adam, Conner, Brendan','3/19','SigEp_SEC_Chapter_Analysis'],
+            ['Behind','Send KO and Tom Executive Board Structure Proposal','Model, Braden','3/19','Expansion Executive Proposal'],
+            ['Not Started','Prep Auburn Preheat Materials','Braden, Lukas','3/19','BMS biz cards...'],
+            ['In Progress','Create a clear rationale sheet addressing “Why this site, why now?”','Model, Lukas','3/19','-'],
+            ['In Progress','Flesh out Volunteer Capability Building','Model, Braden, Lukas','3/19','Volunteer_Capability_Building'],
+            ['Needs Review','Create budget template that shows per man costs at 10, 25, 50 man groups','Model','3/20','Calendar & Budget'],
+            ['Needs Review','Gather information on competitors for retreat','Model, Lukas, Rece, Braden','3/20','Competitor_Intelligence_Report'],
+            ['Not Started','On slide 28 add inspiration to become a Buc Cup chapter','Model, Lukas, Braden','3/20','-'],
+            ['Not Started','Ensure slide 23 talks about why people would want to join','Model, Braden, Lukas','3/20','-'],
+            ['Not Started','Slide 14 changes, key understandings of greek system','Model, Braden, Lukas','3/20','-'],
+            ['Needs Review','Create a new semester calendar that intergrates well with budget','Model, Lukas','3/20','Calendar & Budget'],
+            ['In Progress','Add anecdotal notes for each group to add context around each SEC','Model, Preston','3/20','-'],
+            ['Needs Review','Create a better financial overview and budget','Model, Braden','3/20','Finance Sheet'],
+            ['Not Started','Integrate financial components into phases in expansion model deck','Model, Braden','3/20','-'],
+            ['Not Started','Breakdown of financial HQ','Model, Lukas, Braden','3/20','-'],
+            ['In Progress','On slide 39, add competitor\\'s nature','Model, Lukas, Braden','3/20','-'],
+            ['Needs Review','Run another AI assessment after adding new groups, send in preread','Model','3/20','-'],
+            ['Not Started','Reach out to assigned CSS','Braden','3/20','-'],
+            ['Not Started','Talk to Kelly ab/ getting Parker job in Georgia - Clayton Homes','Braden','3/20','-'],
+            ['Needs Review','Ole Miss Expansion Presentation','Braden, Rece, Judson, Conner','3/21','Ole Miss Expansion Presentation'],
+            ['Not Started','Make TN Alpha Website','Braden','3/21','-'],
+            ['Not Started','Make TX Tech Website','Braden','3/21','-'],
+            ['Not Started','Update Auburn Website','Braden','3/21','-'],
+            ['Not Started','Update expansion SF pipeline','Braden','3/21','-'],
+            ['Not Started','Ensure that the chapter dashboard is up to date','Braden','3/22','-'],
+            ['In Progress','Get all of the expansion finance information together for pre-read','Model, Braden','3/22','-'],
+            ['In Progress','Work with KO and Tom to finalize agenda and retreat materials','Model, Braden','3/22','April Expansion Retreat.docx'],
+            ['Not Started','Confirm attendees for retreat','Model, Lukas, Braden','3/22','-'],
+            ['Needs Review','See what other expansions are doing with vol\\'s for their expansions','Model, Braden, Lukas','3/22','Competitor_Intelligence_Report'],
+            ['Needs Review','Miami Expansion Presentation','Braden, Rece, Conner','3/22','Miami Expansion Presentation'],
+            ['Needs Review','Miami Expansion Packet','Braden, Judson, Conner','3/22','-'],
+            ['Not Started','Book Hotels/AirBNB for Expansion Retreat','Braden','3/22','-'],
+            ['Not Started','Call 25 PRD\\'s','Braden','3/22','-'],
+            ['Needs Review','Ole Miss Committee Approval','Braden','3/23','-'],
+            ['Needs Review','Create standard question set for outreach and determine how we are going to get data','Model, Braden, Lukas','3/25','FSL_Outreach_Templates'],
+            ['Not Started','Change bid committee practice to align with chapter criteria','Model, Braden','3/25','-'],
+            ['Not Started','Figure out the initiation component of chartering','Model, Braden','3/25','-'],
+            ['Not Started','Figure out how to incentivize chartering','Model, Braden','3/25','-'],
+            ['In Progress','Finish transition documents for Lukas','Braden','3/25','-'],
+            ['In Progress','Work on Expansion MSD - Actual Summer MSD','Braden','3/25','-'],
+            ['Not Started','Figure out re-naming SEC\\'s to something else','Model, Braden','3/25','-'],
+            ['In Progress','Develop a three-year map showing where we go, when, and why','Model, Lukas','3/25','-'],
+            ['Needs Review','Syracuse Expansion Process Article - XIV','Braden, Judson, Conner','3/26','-'],
+            ['Stuck','Grade Idaho State and send to John Schuyler','Braden','3/28','-'],
+            ['Not Started','Update this Website','Braden','3/28','-'],
+            ['Needs Review','Flesh out DOE budget w/ Lukas','Braden','4/1','-'],
+            ['Needs Review','Add manpower by semester glidepath for each group','Model, Braden','4/1','Chapter Glidepaths'],
+            ['Not Started','Talk to JSJ about Arizona State - Need to solve $ Issues','Braden, Preston','4/1','-'],
+            ['Not Started','Get Brendan added to website','Braden','4/1','-'],
+            ['Needs Review','Sort out how to keep the expansion segment #\\'s, even after charter','Model, Lukas','4/1','-'],
+            ['Not Started','Get a video of a "kick ass" chartering banquet','Model, Lukas','4/1','-'],
+            ['Not Started','Figure out the "fund a founding father" plan','Model, Lukas','4/1','-'],
+            ['Not Started','Build new hiring pipeline','Braden','4/1','-'],
+            ['Needs Review','Update Chartering Requirements Presentation to Match New Criteria','Braden, Rece','4/10','Canva Presentation'],
+            ['In Progress','Create plan to get high ROI groups to travel to excellent chapters','Judson','4/12','-'],
+            ['Not Started','Add Expansion Assessment to Expansion Dashboard','Model, Braden','4/13','-'],
+            ['Completed','Book TX Tech Flights','-','-','-'],
+            ['Needs Review','Book TX Tech AirBNB','-','-','-'],
+            ['Completed','Make one-pager for Exp. Model - University page','-','-','-'],
+            ['Completed','Make one-pager for Exp. Model - Alumni Page','-','-','-']
         ];
 
         window.onload = () => {
-            const activeSaved = localStorage.getItem('sigep_active_v5');
-            const completedSaved = localStorage.getItem('sigep_completed_v5');
+            // Note: Key updated to force a fresh load with all 80 tasks
+            const activeSaved = localStorage.getItem('sigep_active_v6');
+            const completedSaved = localStorage.getItem('sigep_completed_v6');
             
             let hasLoadedData = false;
 
@@ -169,8 +248,6 @@
             selectElement.className = "status-select cursor-pointer text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full border outline-none pr-6 transition-all " + STATUS_THEMES[val];
             
             const card = selectElement.closest('.task-card');
-            
-            // Handle Needs Review input visibility
             const reviewerInput = card.querySelector('.reviewer-input');
             if(val === 'Needs Review') {
                 reviewerInput.classList.remove('hidden');
@@ -178,7 +255,6 @@
                 reviewerInput.classList.add('hidden');
             }
 
-            // AUTO-MOVE LOGIC: Move to archive if completed, move to active if not.
             const taskContainer = document.getElementById('taskContainer');
             const completedContainer = document.getElementById('completedContainer');
             
@@ -188,7 +264,7 @@
                 }
             } else {
                 if (card.parentElement !== taskContainer) {
-                    taskContainer.prepend(card); // Puts revived tasks at the top
+                    taskContainer.prepend(card); 
                 }
             }
             
@@ -196,8 +272,8 @@
         }
 
         function save() {
-            localStorage.setItem('sigep_active_v5', document.getElementById('taskContainer').innerHTML);
-            localStorage.setItem('sigep_completed_v5', document.getElementById('completedContainer').innerHTML);
+            localStorage.setItem('sigep_active_v6', document.getElementById('taskContainer').innerHTML);
+            localStorage.setItem('sigep_completed_v6', document.getElementById('completedContainer').innerHTML);
             updateStats();
         }
 
@@ -232,10 +308,10 @@
                 }
             });
             
-            document.getElementById('totalCount').innerText = active; // Only count active tasks in the first box
+            document.getElementById('totalCount').innerText = active; 
             document.getElementById('inProgressCount').innerText = inProg;
             document.getElementById('completedCount').innerText = comp;
-            document.getElementById('completedDrawerCount').innerText = comp; // Update the archive header number
+            document.getElementById('completedDrawerCount').innerText = comp; 
             document.getElementById('criticalCount').innerText = crit;
 
             const reviewDash = document.getElementById('reviewDashboard');
@@ -257,7 +333,6 @@
             const div = document.createElement('div');
             div.className = "task-card rounded-xl overflow-hidden";
             
-            // Note the text-center alignment on the data columns to match the header
             div.innerHTML = `
                 <div class="grid grid-cols-[160px,1fr,130px,130px,150px,140px,40px] gap-4 p-4 items-center cursor-pointer task-row text-center" onclick="toggleTask(this)">
                     <div onclick="event.stopPropagation()" class="flex flex-col gap-1 text-left">
@@ -290,33 +365,4 @@
                             Double click to add detailed execution notes...
                         </div>
                     </div>
-                    <div class="flex justify-end pt-3">
-                        <button onclick="if(confirm('Delete this task?')){this.closest('.task-card').remove(); save();}" class="text-xs font-bold text-zinc-500 hover:text-rose-400 transition-colors">
-                            <i class="fas fa-trash-alt mr-1.5"></i> Delete Task
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            // Append to correct container based on initial status
-            if(status === 'Completed') {
-                document.getElementById('completedContainer').appendChild(div);
-            } else {
-                document.getElementById('taskContainer').appendChild(div);
-            }
-            
-            updateSelectColor(div.querySelector('.status-select'), false);
-        }
-
-        function addBlankTask() {
-            renderTask('Not Started', 'New Objective', 'Unassigned', 'TBD', '-');
-            save();
-            window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll up to see the new task
-        }
-
-        document.addEventListener('input', (e) => {
-            if (e.target.hasAttribute('contenteditable')) save();
-        });
-    </script>
-</body>
-</html>
+                    <div class="flex justify-end pt
