@@ -3,111 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SigEp Expansion | Command Center</title>
+    <title>Expansion Command Center</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #09090b; color: #e4e4e7; }
-        .glass-panel { background: rgba(24, 24, 27, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(63, 63, 70, 0.5); }
-        .task-card { transition: all 0.2s ease-in-out; background-color: #18181b; border: 1px solid #27272a; }
-        .task-card:hover { border-color: #52525b; transform: translateY(-1px); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); }
-        .expanded-content { max-height: 0; overflow: hidden; transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .expanded .expanded-content { max-height: 800px; padding-top: 1.5rem; padding-bottom: 1.5rem; border-top: 1px solid #27272a; }
-        .expanded .chevron { transform: rotate(180deg); }
-        [contenteditable]:focus { outline: none; background: #27272a; border-radius: 6px; padding: 2px 6px; box-shadow: 0 0 0 1px #6366f1; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #09090b; 
+            color: #e4e4e7; 
+            background-image: radial-gradient(#27272a 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
         
-        /* Custom Select Styling */
+        .watermark {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 50vh; height: 50vh; opacity: 0.03; pointer-events: none; z-index: -1;
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Sigma_Phi_Epsilon_Badge.svg/1024px-Sigma_Phi_Epsilon_Badge.svg.png');
+            background-position: center; background-repeat: no-repeat; background-size: contain;
+        }
+
+        .glass-panel { background: rgba(24, 24, 27, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(63, 63, 70, 0.5); }
+        
+        .task-card { transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1); background-color: rgba(24, 24, 27, 0.9); border: 1px solid #27272a; }
+        .task-card:hover { border-color: #ffffff; transform: translateY(-4px); box-shadow: 0 20px 40px -10px rgba(255,255,255,0.1); z-index: 10; position: relative;}
+        
+        .expanded-content { max-height: 0; overflow: hidden; transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .expanded .expanded-content { max-height: 800px; padding-top: 1.5rem; padding-bottom: 1.5rem; border-top: 1px solid #3f3f46; }
+        .expanded .chevron { transform: rotate(180deg); }
+        
+        [contenteditable]:focus { outline: none; background: #27272a; border-radius: 6px; padding: 2px 6px; box-shadow: 0 0 0 1.5px #ffffff; }
+        
         select { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 1em; }
     </style>
 </head>
-<body class="min-h-screen selection:bg-indigo-500/30">
+<body class="min-h-screen selection:bg-white/30">
+
+    <div class="watermark"></div>
 
     <div class="max-w-[1600px] mx-auto py-8 px-6">
         
         <header class="mb-8 flex justify-between items-center pb-6 border-b border-zinc-800">
             <div>
-                <h1 class="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
-                    <i class="fas fa-bolt text-indigo-500"></i> Command Center
+                <h1 class="text-3xl font-black tracking-tight text-white flex items-center gap-3">
+                    Expansion Command Center
                 </h1>
-                <p class="text-zinc-500 mt-1 text-sm font-medium">Auburn Chapter Expansion | Live Sync Enabled</p>
+                <p class="text-zinc-500 mt-1 text-sm font-medium">Click text to edit. Everything saves automatically.</p>
             </div>
-            <div class="flex items-center space-x-8 text-sm font-semibold text-zinc-400">
-                <a href="YOUR_DASHBOARD_LINK" target="_blank" class="hover:text-indigo-400 transition-colors">Dashboard</a>
-                <a href="YOUR_HIRING_LINK" target="_blank" class="hover:text-indigo-400 transition-colors">Hiring</a>
-                <a href="YOUR_MODEL_LINK" target="_blank" class="hover:text-indigo-400 transition-colors">Model</a>
-                <button onclick="addTask()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-lg font-bold transition-all shadow-[0_0_15px_rgba(79,70,229,0.4)] active:scale-95 flex items-center gap-2">
+            <div>
+                <button onclick="addBlankTask()" class="bg-white hover:bg-zinc-200 text-black px-6 py-2.5 rounded-lg font-bold transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-95 flex items-center gap-2">
                     <i class="fas fa-plus text-xs"></i> New Task
                 </button>
             </div>
         </header>
 
+        <div id="reviewDashboard" class="hidden mb-8 glass-panel border-amber-500/30 rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(245,158,11,0.05)]">
+            <div class="bg-amber-500/10 px-6 py-3 border-b border-amber-500/20 flex items-center gap-3">
+                <i class="fas fa-exclamation-circle text-amber-500"></i>
+                <h2 class="font-bold text-amber-500 tracking-widest uppercase text-xs">Pending Reviews</h2>
+            </div>
+            <div id="reviewList" class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                </div>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div class="glass-panel p-5 rounded-2xl flex flex-col justify-between">
+            <div class="glass-panel p-5 rounded-2xl">
                 <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Total Tasks</p>
                 <p id="totalCount" class="text-4xl font-black text-white mt-2">0</p>
             </div>
-            <div class="glass-panel p-5 rounded-2xl flex flex-col justify-between shadow-[inset_0_1px_0_rgba(6,182,212,0.2)]">
+            <div class="glass-panel p-5 rounded-2xl shadow-[inset_0_1px_0_rgba(6,182,212,0.2)]">
                 <p class="text-[10px] font-bold text-cyan-500 uppercase tracking-widest">In Progress</p>
                 <p id="inProgressCount" class="text-4xl font-black text-cyan-400 mt-2">0</p>
             </div>
-            <div class="glass-panel p-5 rounded-2xl flex flex-col justify-between shadow-[inset_0_1px_0_rgba(16,185,129,0.2)]">
+            <div class="glass-panel p-5 rounded-2xl shadow-[inset_0_1px_0_rgba(16,185,129,0.2)]">
                 <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Completed</p>
                 <p id="completedCount" class="text-4xl font-black text-emerald-400 mt-2">0</p>
             </div>
-            <div class="glass-panel p-5 rounded-2xl flex flex-col justify-between shadow-[inset_0_1px_0_rgba(244,63,94,0.2)]">
+            <div class="glass-panel p-5 rounded-2xl shadow-[inset_0_1px_0_rgba(244,63,94,0.2)]">
                 <p class="text-[10px] font-bold text-rose-500 uppercase tracking-widest">Critical / Stuck</p>
                 <p id="criticalCount" class="text-4xl font-black text-rose-500 mt-2">0</p>
             </div>
         </div>
 
-        <div class="grid grid-cols-[150px,1fr,120px,120px,130px,140px,40px] gap-4 px-6 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">
+        <div class="grid grid-cols-[160px,1fr,120px,120px,140px,140px,40px] gap-4 px-6 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">
             <div>Status</div>
             <div>Task Description</div>
             <div>Owner(s)</div>
             <div>Deadline</div>
-            <div>Output</div>
+            <div>Output/Chapter</div>
             <div>Time Added</div>
             <div></div>
         </div>
 
-        <div id="taskContainer" class="space-y-3">
+        <div id="taskContainer" class="space-y-3 pb-20">
             </div>
     </div>
 
     <script>
-        // --- NEON APPLE-STYLE THEMES ---
         const STATUS_THEMES = {
             'Not Started': 'bg-zinc-800 text-zinc-300 border-zinc-600',
             'In Progress': 'bg-cyan-950/50 text-cyan-400 border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]',
+            'Needs Review': 'bg-amber-950/50 text-amber-400 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.3)]',
             'Stuck': 'bg-orange-950/50 text-orange-400 border-orange-500/50 shadow-[0_0_10px_rgba(249,115,22,0.2)]',
             'Behind': 'bg-rose-950/50 text-rose-400 border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)]',
             'Completed': 'bg-emerald-950/50 text-emerald-400 border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
         };
 
+        const initialTasks = [
+            ['In Progress','✅ Gmail Drafts Ready', 'Braden', '3/24', 'Send Lindsay info'],
+            ['Not Started','Contact Barry Holt', 'Braden', '3/24', 'Ask him to reach ATO'],
+            ['Not Started','Reach out to Dr. O\'Keefe', 'Braden, Lukas', '3/25', 'Psych services'],
+            ['Stuck','Set up Facebook Parent Pages', 'Lukas', '4/1', 'Recruitment tool'],
+            ['Behind','Move preheat events to calendar', 'Braden', '3/25', 'May 1 rec reg'],
+            ['Stuck','Plan virtual platform for out-of-state', 'Model, Lukas', '4/15', 'No platform exists'],
+            ['Behind','⚠️ CRITICAL: Send Exec Board Proposal', 'Model, Braden', '3/19', '✅ Proposal Ready'],
+            ['Needs Review','Call Bryan Buechner', 'Braden', '3/23', 'Missed 3/20 window']
+        ];
+
         window.onload = () => {
-            const saved = localStorage.getItem('sigep_v3_dark');
+            const saved = localStorage.getItem('sigep_command_v4_clean');
             if (saved && saved.trim() !== "") {
                 document.getElementById('taskContainer').innerHTML = saved;
-                // Re-bind selects after loading HTML
-                document.querySelectorAll('.status-select').forEach(select => updateSelectColor(select));
+                document.querySelectorAll('.status-select').forEach(s => updateSelectColor(s, false));
             } else {
-                addTask(); // Add one blank task to start
+                initialTasks.forEach(t => renderTask(t[0], t[1], t[2], t[3], t[4]));
             }
             updateStats();
         };
 
-        function updateSelectColor(selectElement) {
+        function updateSelectColor(selectElement, shouldSave = true) {
             const val = selectElement.value;
-            // Remove old classes
-            selectElement.className = "status-select cursor-pointer text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border outline-none pr-8 transition-all " + STATUS_THEMES[val];
-            save();
+            selectElement.className = "status-select cursor-pointer text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full border outline-none pr-6 transition-all " + STATUS_THEMES[val];
+            
+            const card = selectElement.closest('.task-card');
+            const reviewerInput = card.querySelector('.reviewer-input');
+            if(val === 'Needs Review') {
+                reviewerInput.classList.remove('hidden');
+            } else {
+                reviewerInput.classList.add('hidden');
+            }
+            
+            if(shouldSave) save();
         }
 
         function save() {
-            // In a real team environment, this pushes to the database.
-            // For now, it saves locally so you don't lose work while designing.
-            localStorage.setItem('sigep_v3_dark', document.getElementById('taskContainer').innerHTML);
+            localStorage.setItem('sigep_command_v4_clean', document.getElementById('taskContainer').innerHTML);
             updateStats();
         }
 
@@ -116,75 +156,105 @@
             document.getElementById('totalCount').innerText = container.children.length;
             
             let inProg = 0, comp = 0, crit = 0;
-            document.querySelectorAll('.status-select').forEach(sel => {
+            const reviewList = document.getElementById('reviewList');
+            reviewList.innerHTML = '';
+            let reviewCount = 0;
+
+            document.querySelectorAll('.task-card').forEach(card => {
+                const sel = card.querySelector('.status-select');
+                if(!sel) return;
+                
                 if(sel.value === 'In Progress') inProg++;
                 if(sel.value === 'Completed') comp++;
                 if(sel.value === 'Stuck' || sel.value === 'Behind') crit++;
+                
+                if(sel.value === 'Needs Review') {
+                    reviewCount++;
+                    const taskName = card.querySelector('.task-title').innerText;
+                    const reviewer = card.querySelector('.reviewer-input').innerText || 'Unassigned';
+                    
+                    reviewList.innerHTML += `
+                        <div class="bg-zinc-900/80 border border-amber-500/20 p-3 rounded-lg flex justify-between items-center cursor-pointer hover:border-amber-500/50 transition" onclick="alert('Scroll down to find this task.')">
+                            <span class="text-xs font-semibold text-zinc-300 truncate max-w-[200px]">${taskName}</span>
+                            <span class="text-[10px] font-black bg-amber-500/20 text-amber-400 px-2 py-1 rounded uppercase tracking-widest border border-amber-500/30">${reviewer}</span>
+                        </div>
+                    `;
+                }
             });
             
             document.getElementById('inProgressCount').innerText = inProg;
             document.getElementById('completedCount').innerText = comp;
             document.getElementById('criticalCount').innerText = crit;
+
+            const reviewDash = document.getElementById('reviewDashboard');
+            if(reviewCount > 0) {
+                reviewDash.classList.remove('hidden');
+            } else {
+                reviewDash.classList.add('hidden');
+            }
         }
 
         function toggleTask(element) {
             element.closest('.task-card').classList.toggle('expanded');
         }
 
-        function addTask() {
+        function renderTask(status, title, owner, deadline, output) {
+            const now = new Date();
+            const timeAdded = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ", " + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            
             const container = document.getElementById('taskContainer');
             const div = document.createElement('div');
             div.className = "task-card rounded-xl overflow-hidden";
             
-            // Generate timestamp
-            const now = new Date();
-            const timeAdded = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ", " + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-            
             div.innerHTML = `
-                <div class="grid grid-cols-[150px,1fr,120px,120px,130px,140px,40px] gap-4 p-4 items-center cursor-pointer" onclick="toggleTask(this)">
-                    <div onclick="event.stopPropagation()">
-                        <select class="status-select cursor-pointer text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border outline-none pr-8 transition-all bg-zinc-800 text-zinc-300 border-zinc-600" onchange="updateSelectColor(this)">
-                            <option value="Not Started">Not Started</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Stuck">Stuck</option>
-                            <option value="Behind">Behind</option>
-                            <option value="Completed">Completed</option>
+                <div class="grid grid-cols-[160px,1fr,120px,120px,140px,140px,40px] gap-4 p-4 items-center cursor-pointer task-row" onclick="toggleTask(this)">
+                    <div onclick="event.stopPropagation()" class="flex flex-col gap-1">
+                        <select class="status-select cursor-pointer text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full border outline-none pr-6 transition-all" onchange="updateSelectColor(this)">
+                            <option value="Not Started" ${status==='Not Started'?'selected':''}>Not Started</option>
+                            <option value="In Progress" ${status==='In Progress'?'selected':''}>In Progress</option>
+                            <option value="Needs Review" ${status==='Needs Review'?'selected':''}>Needs Review</option>
+                            <option value="Stuck" ${status==='Stuck'?'selected':''}>Stuck</option>
+                            <option value="Behind" ${status==='Behind'?'selected':''}>Behind</option>
+                            <option value="Completed" ${status==='Completed'?'selected':''}>Completed</option>
                         </select>
+                        <div contenteditable="true" onblur="save()" class="reviewer-input ${status==='Needs Review'?'':'hidden'} text-[10px] font-bold text-amber-400 bg-amber-950/40 border border-amber-500/30 px-2 py-0.5 rounded ml-1 w-[120px] empty:before:content-['@Reviewer_Name'] empty:before:text-amber-700"></div>
                     </div>
                     <div>
-                        <h3 contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="font-semibold text-sm text-zinc-100 placeholder-zinc-500">New Objective</h3>
+                        <h3 contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="task-title font-semibold text-sm text-zinc-100 placeholder-zinc-500">${title}</h3>
                     </div>
-                    <div contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-xs font-medium text-zinc-400">Unassigned</div>
-                    <div contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-xs font-medium text-zinc-400">TBD</div>
-                    <div contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-xs font-medium text-zinc-400">Auburn</div>
-                    <div class="text-[11px] font-mono text-zinc-600">${timeAdded}</div>
+                    <div contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-xs font-medium text-zinc-400">${owner}</div>
+                    <div contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-xs font-medium text-zinc-400">${deadline}</div>
+                    <div contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-xs font-medium text-zinc-400">${output}</div>
+                    <div class="text-[10px] font-mono text-zinc-500">${timeAdded}</div>
                     <div class="text-right">
                         <i class="fas fa-chevron-down chevron text-zinc-500 text-xs transition-transform"></i>
                     </div>
                 </div>
                 
-                <div class="expanded-content px-6 bg-[#111113]">
+                <div class="expanded-content px-6 bg-[#09090b]">
                     <div class="py-2 mb-4">
                         <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-2">Detailed Notes & Execution Strategy</label>
-                        <div contenteditable="true" onblur="save()" class="text-sm text-zinc-300 leading-relaxed min-h-[80px] bg-zinc-900/50 p-4 rounded-lg border border-zinc-800">
-                            Start typing notes here...
+                        <div contenteditable="true" onblur="save()" class="text-sm text-zinc-300 leading-relaxed min-h-[80px] bg-zinc-900/80 p-4 rounded-lg border border-zinc-800 focus:bg-zinc-800">
+                            Double click to add detailed execution notes...
                         </div>
                     </div>
                     <div class="flex justify-end pt-3">
-                        <button onclick="if(confirm('Delete this task?')){this.closest('.task-card').remove(); save();}" class="text-xs font-bold text-rose-500 hover:text-rose-400 transition-colors bg-rose-500/10 px-4 py-2 rounded-lg border border-rose-500/20">
-                            <i class="fas fa-trash-alt mr-1.5"></i> Delete
+                        <button onclick="if(confirm('Delete this task?')){this.closest('.task-card').remove(); save();}" class="text-xs font-bold text-zinc-500 hover:text-rose-400 transition-colors">
+                            <i class="fas fa-trash-alt mr-1.5"></i> Delete Task
                         </button>
                     </div>
                 </div>
             `;
-            
-            container.prepend(div);
-            // Manually trigger the select color setup
-            updateSelectColor(div.querySelector('.status-select'));
-            save();
+            container.appendChild(div);
+            updateSelectColor(div.querySelector('.status-select'), false);
         }
 
-        // Auto-save on typing
+        function addBlankTask() {
+            renderTask('Not Started', 'New Objective', 'Unassigned', 'TBD', '-');
+            save();
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
         document.addEventListener('input', (e) => {
             if (e.target.hasAttribute('contenteditable')) save();
         });
