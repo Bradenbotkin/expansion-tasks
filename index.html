@@ -66,9 +66,9 @@
                 </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
             <div class="glass-panel p-5 rounded-2xl">
-                <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Total Tasks</p>
+                <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Active Tasks</p>
                 <p id="totalCount" class="text-4xl font-black text-white mt-2">0</p>
             </div>
             <div class="glass-panel p-5 rounded-2xl shadow-[inset_0_1px_0_rgba(6,182,212,0.2)]">
@@ -85,9 +85,9 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-[160px,1fr,120px,120px,140px,140px,40px] gap-4 px-6 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">
-            <div>Status</div>
-            <div>Task Description</div>
+        <div class="grid grid-cols-[160px,1fr,130px,130px,150px,140px,40px] gap-4 px-6 text-[13px] font-bold text-zinc-400 uppercase tracking-widest mb-4 items-center text-center">
+            <div class="text-left">Status</div>
+            <div class="text-left">Task Description</div>
             <div>Owner(s)</div>
             <div>Deadline</div>
             <div>Output/Chapter</div>
@@ -95,8 +95,24 @@
             <div></div>
         </div>
 
-        <div id="taskContainer" class="space-y-3 pb-20">
+        <div id="taskContainer" class="space-y-3 min-h-[100px]">
             </div>
+
+        <div class="mt-12 pt-8 border-t border-zinc-800/50 pb-20">
+            <div class="flex items-center gap-3 cursor-pointer group w-max mb-6" onclick="toggleCompleted()">
+                <div class="bg-zinc-800/50 group-hover:bg-zinc-700 p-1.5 rounded transition-colors">
+                    <i id="completedChevron" class="fas fa-chevron-right text-zinc-400 text-xs transition-transform duration-300"></i>
+                </div>
+                <h2 class="text-sm font-black text-zinc-500 uppercase tracking-widest group-hover:text-zinc-300 transition-colors">
+                    Completed Archive (<span id="completedDrawerCount">0</span>)
+                </h2>
+            </div>
+            
+            <div id="completedWrapper" class="hidden">
+                <div id="completedContainer" class="space-y-3 opacity-60 hover:opacity-100 transition-opacity duration-300">
+                    </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -106,7 +122,7 @@
             'Needs Review': 'bg-amber-950/50 text-amber-400 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.3)]',
             'Stuck': 'bg-orange-950/50 text-orange-400 border-orange-500/50 shadow-[0_0_10px_rgba(249,115,22,0.2)]',
             'Behind': 'bg-rose-950/50 text-rose-400 border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)]',
-            'Completed': 'bg-emerald-950/50 text-emerald-400 border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+            'Completed': 'bg-emerald-950/50 text-emerald-500 border-emerald-500/30'
         };
 
         const initialTasks = [
@@ -121,9 +137,21 @@
         ];
 
         window.onload = () => {
-            const saved = localStorage.getItem('sigep_command_v4_clean');
-            if (saved && saved.trim() !== "") {
-                document.getElementById('taskContainer').innerHTML = saved;
+            const activeSaved = localStorage.getItem('sigep_active_v5');
+            const completedSaved = localStorage.getItem('sigep_completed_v5');
+            
+            let hasLoadedData = false;
+
+            if (activeSaved && activeSaved.trim() !== "") {
+                document.getElementById('taskContainer').innerHTML = activeSaved;
+                hasLoadedData = true;
+            }
+            if (completedSaved && completedSaved.trim() !== "") {
+                document.getElementById('completedContainer').innerHTML = completedSaved;
+                hasLoadedData = true;
+            }
+
+            if (hasLoadedData) {
                 document.querySelectorAll('.status-select').forEach(s => updateSelectColor(s, false));
             } else {
                 initialTasks.forEach(t => renderTask(t[0], t[1], t[2], t[3], t[4]));
@@ -131,39 +159,61 @@
             updateStats();
         };
 
+        function toggleCompleted() {
+            document.getElementById('completedWrapper').classList.toggle('hidden');
+            document.getElementById('completedChevron').classList.toggle('rotate-90');
+        }
+
         function updateSelectColor(selectElement, shouldSave = true) {
             const val = selectElement.value;
             selectElement.className = "status-select cursor-pointer text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full border outline-none pr-6 transition-all " + STATUS_THEMES[val];
             
             const card = selectElement.closest('.task-card');
+            
+            // Handle Needs Review input visibility
             const reviewerInput = card.querySelector('.reviewer-input');
             if(val === 'Needs Review') {
                 reviewerInput.classList.remove('hidden');
             } else {
                 reviewerInput.classList.add('hidden');
             }
+
+            // AUTO-MOVE LOGIC: Move to archive if completed, move to active if not.
+            const taskContainer = document.getElementById('taskContainer');
+            const completedContainer = document.getElementById('completedContainer');
+            
+            if (val === 'Completed') {
+                if (card.parentElement !== completedContainer) {
+                    completedContainer.appendChild(card);
+                }
+            } else {
+                if (card.parentElement !== taskContainer) {
+                    taskContainer.prepend(card); // Puts revived tasks at the top
+                }
+            }
             
             if(shouldSave) save();
         }
 
         function save() {
-            localStorage.setItem('sigep_command_v4_clean', document.getElementById('taskContainer').innerHTML);
+            localStorage.setItem('sigep_active_v5', document.getElementById('taskContainer').innerHTML);
+            localStorage.setItem('sigep_completed_v5', document.getElementById('completedContainer').innerHTML);
             updateStats();
         }
 
         function updateStats() {
-            const container = document.getElementById('taskContainer');
-            document.getElementById('totalCount').innerText = container.children.length;
+            const allCards = document.querySelectorAll('.task-card');
             
-            let inProg = 0, comp = 0, crit = 0;
+            let inProg = 0, comp = 0, crit = 0, active = 0;
             const reviewList = document.getElementById('reviewList');
             reviewList.innerHTML = '';
             let reviewCount = 0;
 
-            document.querySelectorAll('.task-card').forEach(card => {
+            allCards.forEach(card => {
                 const sel = card.querySelector('.status-select');
                 if(!sel) return;
                 
+                if(sel.value !== 'Completed') active++;
                 if(sel.value === 'In Progress') inProg++;
                 if(sel.value === 'Completed') comp++;
                 if(sel.value === 'Stuck' || sel.value === 'Behind') crit++;
@@ -182,8 +232,10 @@
                 }
             });
             
+            document.getElementById('totalCount').innerText = active; // Only count active tasks in the first box
             document.getElementById('inProgressCount').innerText = inProg;
             document.getElementById('completedCount').innerText = comp;
+            document.getElementById('completedDrawerCount').innerText = comp; // Update the archive header number
             document.getElementById('criticalCount').innerText = crit;
 
             const reviewDash = document.getElementById('reviewDashboard');
@@ -202,13 +254,13 @@
             const now = new Date();
             const timeAdded = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ", " + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
             
-            const container = document.getElementById('taskContainer');
             const div = document.createElement('div');
             div.className = "task-card rounded-xl overflow-hidden";
             
+            // Note the text-center alignment on the data columns to match the header
             div.innerHTML = `
-                <div class="grid grid-cols-[160px,1fr,120px,120px,140px,140px,40px] gap-4 p-4 items-center cursor-pointer task-row" onclick="toggleTask(this)">
-                    <div onclick="event.stopPropagation()" class="flex flex-col gap-1">
+                <div class="grid grid-cols-[160px,1fr,130px,130px,150px,140px,40px] gap-4 p-4 items-center cursor-pointer task-row text-center" onclick="toggleTask(this)">
+                    <div onclick="event.stopPropagation()" class="flex flex-col gap-1 text-left">
                         <select class="status-select cursor-pointer text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full border outline-none pr-6 transition-all" onchange="updateSelectColor(this)">
                             <option value="Not Started" ${status==='Not Started'?'selected':''}>Not Started</option>
                             <option value="In Progress" ${status==='In Progress'?'selected':''}>In Progress</option>
@@ -219,7 +271,7 @@
                         </select>
                         <div contenteditable="true" onblur="save()" class="reviewer-input ${status==='Needs Review'?'':'hidden'} text-[10px] font-bold text-amber-400 bg-amber-950/40 border border-amber-500/30 px-2 py-0.5 rounded ml-1 w-[120px] empty:before:content-['@Reviewer_Name'] empty:before:text-amber-700"></div>
                     </div>
-                    <div>
+                    <div class="text-left">
                         <h3 contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="task-title font-semibold text-sm text-zinc-100 placeholder-zinc-500">${title}</h3>
                     </div>
                     <div contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-xs font-medium text-zinc-400">${owner}</div>
@@ -232,7 +284,7 @@
                 </div>
                 
                 <div class="expanded-content px-6 bg-[#09090b]">
-                    <div class="py-2 mb-4">
+                    <div class="py-2 mb-4 text-left">
                         <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-2">Detailed Notes & Execution Strategy</label>
                         <div contenteditable="true" onblur="save()" class="text-sm text-zinc-300 leading-relaxed min-h-[80px] bg-zinc-900/80 p-4 rounded-lg border border-zinc-800 focus:bg-zinc-800">
                             Double click to add detailed execution notes...
@@ -245,14 +297,21 @@
                     </div>
                 </div>
             `;
-            container.appendChild(div);
+            
+            // Append to correct container based on initial status
+            if(status === 'Completed') {
+                document.getElementById('completedContainer').appendChild(div);
+            } else {
+                document.getElementById('taskContainer').appendChild(div);
+            }
+            
             updateSelectColor(div.querySelector('.status-select'), false);
         }
 
         function addBlankTask() {
             renderTask('Not Started', 'New Objective', 'Unassigned', 'TBD', '-');
             save();
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll up to see the new task
         }
 
         document.addEventListener('input', (e) => {
