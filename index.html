@@ -3,200 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SigEp Expansion Task Portal | Auburn Chapter</title>
+    <title>SigEp Expansion | Command Center</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .task-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-left-width: 4px; }
-        .expanded-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
-        .expanded .expanded-content { max-height: 2000px; padding-top: 1.5rem; padding-bottom: 1.5rem; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #09090b; color: #e4e4e7; }
+        .glass-panel { background: rgba(24, 24, 27, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(63, 63, 70, 0.5); }
+        .task-card { transition: all 0.2s ease-in-out; background-color: #18181b; border: 1px solid #27272a; }
+        .task-card:hover { border-color: #52525b; transform: translateY(-1px); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); }
+        .expanded-content { max-height: 0; overflow: hidden; transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .expanded .expanded-content { max-height: 800px; padding-top: 1.5rem; padding-bottom: 1.5rem; border-top: 1px solid #27272a; }
         .expanded .chevron { transform: rotate(180deg); }
-        [contenteditable]:focus { outline: 2px solid #a78bfa; border-radius: 4px; padding: 0 4px; background: white; }
+        [contenteditable]:focus { outline: none; background: #27272a; border-radius: 6px; padding: 2px 6px; box-shadow: 0 0 0 1px #6366f1; }
+        
+        /* Custom Select Styling */
+        select { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 1em; }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-900 font-sans min-h-screen">
+<body class="min-h-screen selection:bg-indigo-500/30">
 
-    <div class="max-w-[1500px] mx-auto py-10 px-8">
+    <div class="max-w-[1600px] mx-auto py-8 px-6">
         
-        <header class="mb-10 flex justify-between items-center border-b pb-8 border-slate-300">
+        <header class="mb-8 flex justify-between items-center pb-6 border-b border-zinc-800">
             <div>
-                <h1 class="text-4xl font-extrabold tracking-tight text-indigo-950">SigEp Expansion Task Portal</h1>
-                <p class="text-slate-600 mt-1 italic">Auburn Chapter | Click text to edit. Shared dashboard instructions below.</p>
+                <h1 class="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
+                    <i class="fas fa-bolt text-indigo-500"></i> Command Center
+                </h1>
+                <p class="text-zinc-500 mt-1 text-sm font-medium">Auburn Chapter Expansion | Live Sync Enabled</p>
             </div>
-            <div class="flex items-center space-x-6 text-sm font-semibold text-slate-700">
-                <a href="#" class="hover:text-indigo-600 text-indigo-700">Dashboard</a>
-                <a href="#" class="hover:text-indigo-600">Hiring</a>
-                <a href="#" class="hover:text-indigo-600">Model</a>
-                <a href="#" class="hover:text-indigo-600">Travel</a>
-                <button onclick="addTask()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-bold transition shadow-xl active:scale-95">
-                    <i class="fas fa-plus mr-2"></i>New Task
+            <div class="flex items-center space-x-8 text-sm font-semibold text-zinc-400">
+                <a href="YOUR_DASHBOARD_LINK" target="_blank" class="hover:text-indigo-400 transition-colors">Dashboard</a>
+                <a href="YOUR_HIRING_LINK" target="_blank" class="hover:text-indigo-400 transition-colors">Hiring</a>
+                <a href="YOUR_MODEL_LINK" target="_blank" class="hover:text-indigo-400 transition-colors">Model</a>
+                <button onclick="addTask()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-lg font-bold transition-all shadow-[0_0_15px_rgba(79,70,229,0.4)] active:scale-95 flex items-center gap-2">
+                    <i class="fas fa-plus text-xs"></i> New Task
                 </button>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-            <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-200">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Tasks</p>
-                <p id="totalCount" class="text-4xl font-black text-indigo-950">--</p>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="glass-panel p-5 rounded-2xl flex flex-col justify-between">
+                <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Total Tasks</p>
+                <p id="totalCount" class="text-4xl font-black text-white mt-2">0</p>
             </div>
-            <div class="bg-amber-50 p-6 rounded-2xl shadow-lg border border-amber-200">
-                <p class="text-xs font-bold text-amber-500 uppercase tracking-widest mb-1">In Progress</p>
-                <p id="inProgressCount" class="text-4xl font-black text-amber-700">--</p>
+            <div class="glass-panel p-5 rounded-2xl flex flex-col justify-between shadow-[inset_0_1px_0_rgba(6,182,212,0.2)]">
+                <p class="text-[10px] font-bold text-cyan-500 uppercase tracking-widest">In Progress</p>
+                <p id="inProgressCount" class="text-4xl font-black text-cyan-400 mt-2">0</p>
             </div>
-            <div class="bg-emerald-50 p-6 rounded-2xl shadow-lg border border-emerald-200">
-                <p class="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-1">Completed</p>
-                <p id="completedCount" class="text-4xl font-black text-emerald-700">--</p>
+            <div class="glass-panel p-5 rounded-2xl flex flex-col justify-between shadow-[inset_0_1px_0_rgba(16,185,129,0.2)]">
+                <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Completed</p>
+                <p id="completedCount" class="text-4xl font-black text-emerald-400 mt-2">0</p>
             </div>
-            <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-bold text-red-400 uppercase tracking-widest mb-1">Critical/Stuck</p>
-                    <p id="criticalCount" class="text-4xl font-black text-red-600">--</p>
-                </div>
-                <button onclick="sortTasks()" class="text-xs font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded hover:bg-indigo-100">Sort by Status</button>
+            <div class="glass-panel p-5 rounded-2xl flex flex-col justify-between shadow-[inset_0_1px_0_rgba(244,63,94,0.2)]">
+                <p class="text-[10px] font-bold text-rose-500 uppercase tracking-widest">Critical / Stuck</p>
+                <p id="criticalCount" class="text-4xl font-black text-rose-500 mt-2">0</p>
             </div>
         </div>
 
-        <div class="grid grid-cols-[130px,1fr,150px,150px,150px,60px] gap-4 px-6 text-[11px] font-black text-slate-400 uppercase tracking-wider mb-2">
+        <div class="grid grid-cols-[150px,1fr,120px,120px,130px,140px,40px] gap-4 px-6 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">
             <div>Status</div>
             <div>Task Description</div>
             <div>Owner(s)</div>
             <div>Deadline</div>
-            <div>Chapter/Output</div>
+            <div>Output</div>
+            <div>Time Added</div>
             <div></div>
         </div>
 
-        <div id="taskContainer" class="space-y-4">
+        <div id="taskContainer" class="space-y-3">
             </div>
     </div>
 
     <script>
-        // --- REAL DATA EXTRACTED FROM image_1.png ---
-        let initialData = [
-            ['Not Started','Thank you cards for FSL, Lindsay, Frank Sr.', 'Braden', '3/24', 'Auburn', '...'],
-            ['In Progress','✅ Gmail Drafts Ready', 'Braden', '3/24', 'Auburn', 'Send Lindsay and Johnny interest group info'],
-            ['In Progress','✅ Gmail Drafts Ready', 'Will Brann, Quinlan Fettig', '...', '...', 'Draft in Gmail'],
-            ['Not Started','Contact Barry Holt', 'Braden', '3/24', 'Auburn', 'Ask him to reach out to ATO...'],
-            ['Not Started','Reach out to Dr. Pat O\'Keefe', 'Braden, Lukas', '3/25', 'Auburn', 'Psych services, potential Montana SigEp...'],
-            ['Stuck','Set up Facebook Parent Pages for Auburn', 'Lukas', '4/1', 'Auburn', 'Key recruitment tool flagged by IFC...'],
-            ['Behind','Move Auburn preheat events to semester calendar template', 'Braden', '3/25', 'Auburn', 'May 1 rec reg, May 29 events deadline...'],
-            ['Stuck','Plan virtual platform for out-of-state PNM engagement over summer', 'Model, Lukas', '4/15', 'Auburn', 'No platform exists yet...'],
-            ['Behind','Replicate Lambda Chi\'s formal advisor interview process for AVC', 'Lukas', '4/30', 'Auburn', 'Gather metrics, vote, huddle, bid...'],
-            ['In Progress','Study A&M and Miss State expansion differentiation for Auburn', 'Model', '4/1', 'Auburn', '...'],
-            ['Behind','⚠️ CRITICAL: Send KO and Tom Executive Board Structure Proposal', 'Model, Braden', '3/19', 'Auburn', '✅ Proposal Ready. let them know it will ruffle feathers.'],
-            ['Stuck','Call Bryan Buechner - Per Bert - Xavier College', 'Braden', '3/23', 'Auburn', '✅ Gmail Draft Ready. Missed 3/20 window.'],
-            ['Stuck','Grade Idaho State and send to John Schuyler', 'Braden', '3/28', 'Auburn', '...']
-        ];
-
-        const STATUS_COLORS = {
-            'Not Started': { bg: 'bg-slate-50', border: 'border-l-slate-200', text: 'text-slate-500', bar: 'bg-slate-200' },
-            'In Progress': { bg: 'bg-amber-50', border: 'border-l-amber-300', text: 'text-amber-700', bar: 'bg-amber-300' },
-            'Stuck': { bg: 'bg-red-50', border: 'border-l-red-300', text: 'text-red-700', bar: 'bg-red-300' },
-            'Behind': { bg: 'bg-red-50', border: 'border-l-red-500', text: 'text-red-800', bar: 'bg-red-500' },
-            'Completed': { bg: 'bg-emerald-50', border: 'border-l-emerald-300', text: 'text-emerald-700', bar: 'bg-emerald-300' },
-            'New': { bg: 'bg-indigo-50', border: 'border-l-indigo-300', text: 'text-indigo-700', bar: 'bg-indigo-300' }
+        // --- NEON APPLE-STYLE THEMES ---
+        const STATUS_THEMES = {
+            'Not Started': 'bg-zinc-800 text-zinc-300 border-zinc-600',
+            'In Progress': 'bg-cyan-950/50 text-cyan-400 border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]',
+            'Stuck': 'bg-orange-950/50 text-orange-400 border-orange-500/50 shadow-[0_0_10px_rgba(249,115,22,0.2)]',
+            'Behind': 'bg-rose-950/50 text-rose-400 border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)]',
+            'Completed': 'bg-emerald-950/50 text-emerald-400 border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
         };
 
-        // --- PHASE 1 FUNCTIONALITY (MY SITE ONLY) ---
-
         window.onload = () => {
-            const saved = localStorage.getItem('sigep_team_tasks_v2');
+            const saved = localStorage.getItem('sigep_v3_dark');
             if (saved && saved.trim() !== "") {
                 document.getElementById('taskContainer').innerHTML = saved;
+                // Re-bind selects after loading HTML
+                document.querySelectorAll('.status-select').forEach(select => updateSelectColor(select));
             } else {
-                renderInitialData();
+                addTask(); // Add one blank task to start
             }
             updateStats();
         };
 
-        function renderInitialData() {
-            initialData.forEach(task => addTask(task[0], task[1], task[2], task[3], task[4], task[5]));
+        function updateSelectColor(selectElement) {
+            const val = selectElement.value;
+            // Remove old classes
+            selectElement.className = "status-select cursor-pointer text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border outline-none pr-8 transition-all " + STATUS_THEMES[val];
+            save();
         }
 
         function save() {
-            localStorage.setItem('sigep_team_tasks_v2', document.getElementById('taskContainer').innerHTML);
+            // In a real team environment, this pushes to the database.
+            // For now, it saves locally so you don't lose work while designing.
+            localStorage.setItem('sigep_v3_dark', document.getElementById('taskContainer').innerHTML);
             updateStats();
         }
 
         function updateStats() {
-            const tasks = document.querySelectorAll('.task-card');
-            document.getElementById('totalCount').innerText = tasks.length;
-            document.getElementById('inProgressCount').innerText = document.querySelectorAll('[contenteditable="true"]:focus-within').length; // Dynamic update
-            document.getElementById('completedCount').innerText = document.querySelectorAll('.task-card [data-status="Completed"]').length;
-            document.getElementById('criticalCount').innerText = document.querySelectorAll('.task-card [data-status="Stuck"], .task-card [data-status="Behind"]').length;
+            const container = document.getElementById('taskContainer');
+            document.getElementById('totalCount').innerText = container.children.length;
+            
+            let inProg = 0, comp = 0, crit = 0;
+            document.querySelectorAll('.status-select').forEach(sel => {
+                if(sel.value === 'In Progress') inProg++;
+                if(sel.value === 'Completed') comp++;
+                if(sel.value === 'Stuck' || sel.value === 'Behind') crit++;
+            });
+            
+            document.getElementById('inProgressCount').innerText = inProg;
+            document.getElementById('completedCount').innerText = comp;
+            document.getElementById('criticalCount').innerText = crit;
         }
 
         function toggleTask(element) {
             element.closest('.task-card').classList.toggle('expanded');
         }
 
-        function handleStatusChange(badgeElement) {
-            const newStatus = prompt("Enter new status (Not Started, In Progress, Stuck, Behind, Completed):");
-            if (newStatus && STATUS_COLORS[newStatus]) {
-                badgeElement.dataset.status = newStatus;
-                badgeElement.innerText = newStatus;
-                
-                const card = badgeElement.closest('.task-card');
-                const colors = STATUS_COLORS[newStatus];
-                
-                // Update coloring
-                card.className = `task-card bg-white rounded-2xl shadow-xl hover:border-indigo-400 overflow-hidden ${colors.border}`;
-                badgeElement.className = `status-badge text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded ${colors.text} ${colors.bg}`;
-                
-                save();
-            }
-        }
-
-        function addTask(status = "Not Started", title = "New Expansion Task", owner = "SigEp Team", deadline = "TBD", chapter = "Auburn", notes = "Edit this note...") {
+        function addTask() {
             const container = document.getElementById('taskContainer');
-            const colors = STATUS_COLORS[status] || STATUS_COLORS['New'];
-            
             const div = document.createElement('div');
-            div.className = `task-card bg-white rounded-2xl shadow-xl hover:border-indigo-400 overflow-hidden ${colors.border}`;
+            div.className = "task-card rounded-xl overflow-hidden";
+            
+            // Generate timestamp
+            const now = new Date();
+            const timeAdded = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ", " + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
             
             div.innerHTML = `
-                <div class="grid grid-cols-[130px,1fr,150px,150px,150px,60px] gap-4 p-5 items-center cursor-pointer" onclick="toggleTask(this)">
-                    <div>
-                        <span onclick="event.stopPropagation(); handleStatusChange(this)" data-status="${status}" class="status-badge text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded ${colors.text} ${colors.bg}">${status}</span>
+                <div class="grid grid-cols-[150px,1fr,120px,120px,130px,140px,40px] gap-4 p-4 items-center cursor-pointer" onclick="toggleTask(this)">
+                    <div onclick="event.stopPropagation()">
+                        <select class="status-select cursor-pointer text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border outline-none pr-8 transition-all bg-zinc-800 text-zinc-300 border-zinc-600" onchange="updateSelectColor(this)">
+                            <option value="Not Started">Not Started</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Stuck">Stuck</option>
+                            <option value="Behind">Behind</option>
+                            <option value="Completed">Completed</option>
+                        </select>
                     </div>
                     <div>
-                        <h3 contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="font-bold text-lg text-indigo-950">${title}</h3>
+                        <h3 contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="font-semibold text-sm text-zinc-100 placeholder-zinc-500">New Objective</h3>
                     </div>
-                    <div contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-sm font-semibold text-slate-700">${owner}</div>
-                    <div contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-sm text-slate-500 font-medium"><i class="far fa-calendar mr-1.5 text-slate-400"></i>${deadline}</div>
-                    <div contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-sm font-semibold text-slate-800">${chapter}</div>
+                    <div contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-xs font-medium text-zinc-400">Unassigned</div>
+                    <div contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-xs font-medium text-zinc-400">TBD</div>
+                    <div contenteditable="true" onblur="save()" onclick="event.stopPropagation()" class="text-xs font-medium text-zinc-400">Auburn</div>
+                    <div class="text-[11px] font-mono text-zinc-600">${timeAdded}</div>
                     <div class="text-right">
-                        <i class="fas fa-chevron-down chevron text-slate-300 text-sm transition-transform"></i>
+                        <i class="fas fa-chevron-down chevron text-zinc-500 text-xs transition-transform"></i>
                     </div>
                 </div>
                 
-                <div class="expanded-content px-20 bg-slate-50/70 border-t border-slate-200">
-                    <div class="py-6">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Detailed Notes, Goals, and owner names</label>
-                        <div contenteditable="true" onblur="save()" class="text-sm text-slate-600 leading-relaxed min-h-[100px] bg-white p-4 rounded-xl shadow-inner border border-slate-200">
-                            ${notes}
-                        </div>
-                        
-                        <div class="mt-6 flex items-center space-x-6 pt-4 border-t border-slate-200">
-                            <a href="https://Expansion-chapter-requirements.org" target="_blank" class="text-xs text-indigo-500 font-bold hover:underline"><i class="fas fa-link mr-2"></i>Chapter Requirements</a>
-                            <a href="#" class="text-xs text-slate-400 font-medium hover:text-indigo-600"><i class="fas fa-chart-line mr-2"></i>Audit Ready</a>
+                <div class="expanded-content px-6 bg-[#111113]">
+                    <div class="py-2 mb-4">
+                        <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-2">Detailed Notes & Execution Strategy</label>
+                        <div contenteditable="true" onblur="save()" class="text-sm text-zinc-300 leading-relaxed min-h-[80px] bg-zinc-900/50 p-4 rounded-lg border border-zinc-800">
+                            Start typing notes here...
                         </div>
                     </div>
-                    <div class="flex justify-end border-t border-slate-300 py-4">
-                        <button onclick="if(confirm('Delete this task permanently?')){this.closest('.task-card').remove(); save();}" class="text-xs font-bold text-red-400 hover:text-red-700 transition">
-                            <i class="fas fa-trash-alt mr-1.5"></i> DELETE TASK
+                    <div class="flex justify-end pt-3">
+                        <button onclick="if(confirm('Delete this task?')){this.closest('.task-card').remove(); save();}" class="text-xs font-bold text-rose-500 hover:text-rose-400 transition-colors bg-rose-500/10 px-4 py-2 rounded-lg border border-rose-500/20">
+                            <i class="fas fa-trash-alt mr-1.5"></i> Delete
                         </button>
                     </div>
                 </div>
             `;
             
             container.prepend(div);
+            // Manually trigger the select color setup
+            updateSelectColor(div.querySelector('.status-select'));
             save();
         }
 
-        function sortTasks() {
-            // Sorting logic is needed for Team Shared data phase
-            alert("Sorting requires a live database integration. Working on shared dashboard setup.");
-        }
+        // Auto-save on typing
+        document.addEventListener('input', (e) => {
+            if (e.target.hasAttribute('contenteditable')) save();
+        });
     </script>
 </body>
 </html>
